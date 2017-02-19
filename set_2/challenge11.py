@@ -1,11 +1,11 @@
 from random import randint
 from challenge10 import *
 
-def gen_random_16():
-	return bytes([randint(0,255) for i in range(16)])
+def gen_random_count(count):
+	return bytes([randint(0,255) for i in range(count)])
 
 def encryption_oracle(data):
-	key = gen_random_16()
+	key = gen_random_count(16)
 	
 	pre = bytes([randint(0,255) for i in range(randint(5,11))])
 	app = bytes([randint(0,255) for i in range(randint(5,11))])

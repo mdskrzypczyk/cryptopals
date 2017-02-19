@@ -2,7 +2,7 @@ from challenge10 import *
 from challenge11 import *
 from base64 import b64decode
 
-key = gen_random_16()
+key = gen_random_count(16)
 app = b64decode(open('12.txt').read())
 
 def mod_encryption_oracle(data):

@@ -1,7 +1,7 @@
 from challenge10 import *
-from challenge11 import gen_random_16
+from challenge11 import gen_random_count
 
-key = gen_random_16()
+key = gen_random_count(16)
 
 def profile_for(email, uid=10, role='user'):
 	email = email.replace('&', '').replace('=', '')
