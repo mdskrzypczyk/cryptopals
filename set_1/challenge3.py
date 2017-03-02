@@ -1,8 +1,5 @@
 from string import ascii_lowercase, ascii_uppercase
 
-def single_byte_xor(data, byte):
-    return [d ^ byte for d in data]
-
 def single_byte_xor_map(data):
     xor_data = {}
     data = [ord(a) for a in ascii]

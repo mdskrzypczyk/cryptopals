@@ -19,3 +19,13 @@ def breakup_cipher(cipher, size):
 def ascii_to_hex(ascii):
 	result = ''.join(["{0:02x}".format(a) for a in ascii])
 	return result
+
+def xor_with_single_byte(data, byte):
+    return [d ^ byte for d in data]
+
+def repeated_key_xor(target_string, key_segment):
+	key = key_segment*(int(len(target_string)/len(key_segment)) + 1)
+	key = key[0:len(target_string)]
+	hex_key = ''.join(["{0:02x}".format(ord(c)) for c in key])
+	hex_string = ''.join(["{0:02x}".format(ord(c)) for c in target_string])
+	return xor_hex_strings(hex_string,hex_key)

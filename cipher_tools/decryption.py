@@ -1,3 +1,5 @@
+from Crypto.Cipher import AES
+
 def decrypt_ecb(iv, key, data):
 	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
 	data = bytes([a ^ b for a,b in zip(iv*int(len(data)/16), aes.decrypt(data))])
