@@ -1,7 +1,7 @@
 from challenge17 import *
+from base64 import b64decode
 
 def gen_key_stream(key, data):
-	print(key, data)
 	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
 	return aes.encrypt(data)
 
@@ -37,7 +37,7 @@ def decrypt_ctr(nonce, key, cipher):
 	assert len(cipher) == len(data)
 	return data
 
-nonce = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-key = bytes("YELLOW SUBMARINE", 'utf-8')
-data = bytes("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==", 'utf-8')
-print(decrypt_ctr(nonce, key, data))
+#nonce = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+#key = bytes("YELLOW SUBMARINE", 'utf-8')
+#data = b64decode("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==")
+#print(decrypt_ctr(nonce, key, data))
