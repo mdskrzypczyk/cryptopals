@@ -1,4 +1,5 @@
 from base64 import b64encode, b64decode
+from string import ascii_lowercase, ascii_uppercase
 
 def hex2b64(hex_string):
 	byte_stream = bytes([int(hex_string[i:i+2],16) for i in range(0,len(hex_string),2)])
@@ -12,9 +13,16 @@ def xor_hex_strings(hex1, hex2):
 	result = ''.join(["{0:0x}".format(int(h1,16) ^ int(h2,16)) for h1,h2 in zip(hex1,hex2)])
 	return result
 
-def breakup_cipher(cipher, size):
-	broken = [cipher[i:i+size] for i in range(0,len(cipher),size)]
+def breakup_data(data, size):
+	broken = [data[i:i+size] for i in range(0,len(data),size)]
 	return broken
+
+def transpose_blocks(blocks):
+	t_blocks = ['']*len(blocks[0])
+	for block in blocks:
+		for index in range(len(block)):
+			t_blocks[index] += block[index]
+	return t_blocks
 
 def ascii_to_hex(ascii):
 	result = ''.join(["{0:02x}".format(a) for a in ascii])
@@ -22,6 +30,17 @@ def ascii_to_hex(ascii):
 
 def xor_with_single_byte(data, byte):
     return [d ^ byte for d in data]
+
+def single_byte_xor_map(data):
+    xor_data = {}
+    ascii = ascii_uppercase + ascii_lowercase
+    data = [ord(a) for a in ascii]
+    for c in range(256):
+        c_string = "{0:02x}".format(c) * int(len(target_string) / 2)
+        x_string = xor_hex_strings(target_string, c_string)
+        a_string = ''.join([chr(int(x_string[i:i+2],16)) for i in range(0, len(x_string),2)])
+        xor_data[a_string] = chr(c)
+    return xor_data
 
 def repeated_key_xor(target_string, key_segment):
 	key = key_segment*(int(len(target_string)/len(key_segment)) + 1)

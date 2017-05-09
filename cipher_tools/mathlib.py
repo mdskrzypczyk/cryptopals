@@ -38,3 +38,13 @@ def getChi2_english(text):
         chi2 += difference * difference / expected;
 
     return chi2;
+
+def hamming_distance(string1, string2):
+    distance = 0
+    string1 += '\x00'*(len(string2) - len(string1))
+    string2 += '\x00'*(len(string1) - len(string2))
+    for c1, c2 in zip(string1, string2):
+        xor = ord(c1) ^ ord(c2)
+        bin_diff = bin(xor)
+        distance += bin_diff.count('1')
+    return distance

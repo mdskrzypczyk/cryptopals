@@ -28,7 +28,15 @@ def challenge5(key, string_data):
 
 from cipher_tools.cracking import crack_repeated_key_xor
 def challenge6(cipher):
-	return crack_repeated_key_xor(cipher)
+	with open('6.txt') as f:
+		data = str(b64decode(f.read()), 'utf-8')
+		hex_d = crack_repeated_key_xor(data)
+		decrypted = []
+		for h in hex_d:
+			ascii = ''.join([chr(int(h[i:i+2],16)) for i in range(0,len(h),2)])
+			decrypted.append(ascii)
+			assert len(ascii) == len(data)
+	return sorted(decrypted, key=lambda x : getChi2(x))[0]
 
 
 from cipher_tools.encryption import encrypt_ecb
