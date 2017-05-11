@@ -7,7 +7,6 @@ app = b64decode(open('12.txt').read())
 
 def mod_encryption_oracle(data):
 	data += app
-
 	iv = bytes([0]*16)
 	return encrypt_ecb(iv, key, data)
 
