@@ -1,22 +1,26 @@
+import binascii
 from cipher_tools.mathlib import *
+from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
+    
+def crack_one_char_xor(hex_string):
+    candidate_keys = ["{0:02x}".format(i)*len(hex_string) for i in range(256)]
+    hex_decryptions = [xor_hex_strings(hex_string, k) for k in candidate_keys]
+    ascii_decryptions = [''.join([chr(b) for b in binascii.unhexlify(hd)]) for hd in hex_decryptions]
+    sorted_d = sorted(ascii_decryptions, key=lambda decryption : getChi2_english(decryption))
+    ranked_decryptions = list(filter(lambda decryption : getChi2_english(decryption) != float('inf'), sorted_d))
+    if ranked_decryptions:
+        return ranked_decryptions[0]
+    else:
+        return None
 
 def identify_one_char_xor(ciphers):
     potential_decryptions = []
     for pc in potential_ciphertexts:
-        d = decrypt_one_char_xor(pc)
+        best_decryption = crack_one_char_xor(pc)
         if d:
-            potential_decryptions.append(d)
-    return sorted(potential_decryptions, key=lambda x: getChi2(x[0]))[0]
-    
-def crack_one_char_xor(hex_string):
-    decryptions = single_byte_ascii_decryptions(hex_string)
-    sorted_d = sorted(decryptions.items(), key=lambda x : getChi2(x[0]))
-    decryptions = list(filter(lambda x : getChi2(x[0]) != float('inf'), sorted_d))
-    if decryptions:
-        return decryptions[0]
-    else:
-        return None
+            potential_decryptions.append(best_decryption)
+    return sorted(potential_decryptions, key=lambda decryption: getChi2(decryption))[0]
 
 def find_repeated_key_xor_keysize(target):
     MAXKEYSIZE = 60
