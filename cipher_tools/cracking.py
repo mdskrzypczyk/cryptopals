@@ -16,14 +16,15 @@ def crack_one_char_xor(hex_string):
 
 def identify_one_char_xor(ciphers):
     potential_decryptions = []
-    for pc in potential_ciphertexts:
+    for pc in ciphers:
         best_decryption = crack_one_char_xor(pc)
-        if d:
+        if best_decryption:
             potential_decryptions.append(best_decryption)
-    return sorted(potential_decryptions, key=lambda decryption: getChi2(decryption))[0]
+    return sorted(potential_decryptions, key=lambda decryption: getChi2_english(decryption))[0]
 
 def find_repeated_key_xor_keysize(target):
     MAXKEYSIZE = 60
+    NUMSMALLKEYS = 10
     size_score = {}
     for KEYSIZE in range(2, MAXKEYSIZE):
         dat1 = target[:KEYSIZE]
@@ -40,7 +41,7 @@ def crack_repeated_key_transposed_blocks(blocks):
     for block in blocks:
         h_block = ascii_to_hex(block)
         assert len(h_block) == 2*len(block)
-        d = decrypt_one_char_xor(h_block)
+        d = crack_one_char_xor(h_block)
         if not d:
             return 'x'
         k = d[1]
@@ -51,15 +52,19 @@ def crack_repeated_key_transposed_blocks(blocks):
     return key
 
 def crack_repeated_key_xor(cipher):
-    keysizes = find_keysize(cipher)
+    keysizes = find_repeated_key_xor_keysize(cipher)
     keys = []
+    print(keysizes)
     for size in keysizes:
-        c_blocks = breakup_cipher(cipher, size[0])
+        c_blocks = breakup_data(cipher, size[0])
         t_blocks = transpose_blocks(c_blocks)
-        key = decrypt_blocks(t_blocks)
+        key = crack_repeated_key_transposed_blocks(t_blocks)
         keys.append(key)
 
-    return [repeated_key_xor(cipher, key) for key in keys]
+    hex_decryptions = [repeated_key_xor(cipher, key) for key in keys]
+    ascii_decryptions = [''.join([chr(int(h[i:i+2],16)) for i in range(0,len(h),2)]) for h in hex_decryptions]
+
+    return sorted(ascii_decryptions, key=lambda x : getChi2_english(x))
 
 def identify_ecb_encrypted_data(dataset):
     reps = []

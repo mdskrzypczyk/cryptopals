@@ -25,7 +25,7 @@ def transpose_blocks(blocks):
 	return t_blocks
 
 def ascii_to_hex(ascii):
-	result = ''.join(["{0:02x}".format(a) for a in ascii])
+	result = ''.join(["{0:02x}".format(ord(a)) for a in ascii])
 	return result
 
 def xor_with_single_byte(data, byte):
