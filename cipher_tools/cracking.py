@@ -6,9 +6,9 @@ from cipher_tools.decryption import *
 def crack_one_char_xor(hex_string):
     candidate_keys = ["{0:02x}".format(i)*len(hex_string) for i in range(256)]
     hex_decryptions = [xor_hex_strings(hex_string, k) for k in candidate_keys]
-    ascii_decryptions = [''.join([chr(b) for b in binascii.unhexlify(hd)]) for hd in hex_decryptions]
-    sorted_d = sorted(ascii_decryptions, key=lambda decryption : getChi2_english(decryption))
-    ranked_decryptions = list(filter(lambda decryption : getChi2_english(decryption) != float('inf'), sorted_d))
+    ascii_decryptions = [(''.join([chr(b) for b in binascii.unhexlify(hd)]), chr(i)) for hd,i in zip(hex_decryptions, range(256))]
+    sorted_d = sorted(ascii_decryptions, key=lambda decryption : getChi2_english(decryption[0]))
+    ranked_decryptions = list(filter(lambda decryption : getChi2_english(decryption[0]) != float('inf'), sorted_d))
     if ranked_decryptions:
         return ranked_decryptions[0]
     else:
@@ -54,7 +54,6 @@ def crack_repeated_key_transposed_blocks(blocks):
 def crack_repeated_key_xor(cipher):
     keysizes = find_repeated_key_xor_keysize(cipher)
     keys = []
-    print(keysizes)
     for size in keysizes:
         c_blocks = breakup_data(cipher, size[0])
         t_blocks = transpose_blocks(c_blocks)
@@ -64,7 +63,7 @@ def crack_repeated_key_xor(cipher):
     hex_decryptions = [repeated_key_xor(cipher, key) for key in keys]
     ascii_decryptions = [''.join([chr(int(h[i:i+2],16)) for i in range(0,len(h),2)]) for h in hex_decryptions]
 
-    return sorted(ascii_decryptions, key=lambda x : getChi2_english(x))
+    return sorted(ascii_decryptions, key=lambda x : getChi2_english(x))[0]
 
 def identify_ecb_encrypted_data(dataset):
     reps = []
