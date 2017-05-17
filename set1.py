@@ -15,32 +15,36 @@ def challenge3(hex_cipher):
 
 from cipher_tools.cracking import identify_one_char_xor
 def challenge4(string_set):
-	string_set = open('challenge_data/4.txt').read().splitlines()
+	with open('challenge_data/4.txt') as f:
+		string_set = f.read().splitlines()
 	return identify_one_char_xor(string_set)
 
 
 from cipher_tools.data_manipulation import repeated_key_xor
-def challenge5(key, string_data):
+def challenge5():
 	string_data = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
 	key = "ICE"
 	return repeated_key_xor(string_data, key)
 
 from base64 import *
 from cipher_tools.cracking import crack_repeated_key_xor
-def challenge6(cipher):
+def challenge6():
 	with open('challenge_data/6.txt') as f:
 		data = str(b64decode(f.read()), 'utf-8')
 	return crack_repeated_key_xor(data)
 
 
-from cipher_tools.encryption import encrypt_ecb
-def challenge7(key, data):
-	iv = '\x00'*16
+from cipher_tools.decryption import decrypt_ecb
+def challenge7():
+	iv = bytes(16)
 	key = "YELLOW SUBMARINE"
-	data = b64decode(open('challenge_data/7.txt').read())
-	return decrypt_ecb(key, data)
+	with open('challenge_data/7.txt') as f:
+		data = b64decode(f.read())
+	return decrypt_ecb(iv, key, data)
 
 
 from cipher_tools.cracking import identify_ecb_encrypted_data
 def challenge8():
-	return identify_ecb_encrypted_data()
+	with open('challenge_data/8.txt') as f:
+		data = [b64decode(line) for line in f.read().splitlines()]
+	return identify_ecb_encrypted_data(data)

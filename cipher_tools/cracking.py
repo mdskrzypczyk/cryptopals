@@ -67,14 +67,15 @@ def crack_repeated_key_xor(cipher):
 
 def identify_ecb_encrypted_data(dataset):
     reps = []
-    for h in data:
-        ascii = ''.join([chr(int(h[i:i+2], 16)) for i in range(0,len(h),2)])
-        blocks = breakup_cipher(ascii, 16)
+    for candidate in dataset:
+        ascii = ''.join([chr(c) for c in candidate])
+        blocks = breakup_data(ascii, 16)
         rep = {}
         for block in blocks:
             if rep.get(block):
                 rep[block] = rep[block]+1
             else:
                 rep[block] = 1
-        reps.append((rep,h))
-    return sorted(reps, key = lambda x : max(x[0].values()))[-1][0]
+        reps.append((rep,candidate))
+    best_candidate = sorted(reps, key = lambda x : max(x[0].values()))[-1]
+    return b64encode(best_candidate[1])
