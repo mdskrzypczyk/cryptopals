@@ -1,9 +1,15 @@
 from cipher_tools.padding import pkcs7pad
 def challenge9():
-	pass
+	data = b'YELLOW SUBMARINE'
+	return pkcs7pad(data, 20)
 
+from cipher_tools.decryption import decrypt_cbc
 def challenge10():
-	pass
+	iv = bytes(16)
+	key = b'YELLOW SUBMARINE'
+	with open('challenge_data/12.txt') as f:
+		data = f.read()
+	return decrypt_cbc(iv, key, data)
 
 def challenge11():
 	pass
