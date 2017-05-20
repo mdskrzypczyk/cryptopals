@@ -1,4 +1,5 @@
 from Crypto.Cipher import AES
+from cipher_tools.padding import remove_pkcs7pad
 
 def single_byte_ascii_decryptions(target_string):
     decrypted = single_byte_xor_map(target_string)
@@ -13,6 +14,7 @@ def single_byte_ascii_decryptions(target_string):
 def decrypt_ecb(iv, key, data):
 	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
 	data = bytes([a ^ b for a,b in zip(iv*int(len(data)/16), aes.decrypt(data))])
+	data = remove_pkcs7pad(data)
 	return data
 
 def decrypt_cbc(iv, key, cipher):

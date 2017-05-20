@@ -21,8 +21,9 @@ from cipher_tools.cracking import crack_challenge12_oracle
 def challenge12():
 	return crack_challenge12_oracle(challenge12_oracle)
 
+from cipher_tools.cracking import generate_encrypted_admin_user
 def challenge13():
-	pass
+	return generate_encrypted_admin_user()
 
 def challenge14():
 	pass

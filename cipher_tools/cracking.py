@@ -1,7 +1,9 @@
 import binascii
+from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
+from cipher_tools.encryption import *
     
 def crack_one_char_xor(hex_string):
     candidate_keys = ["{0:02x}".format(i)*len(hex_string) for i in range(256)]
@@ -141,3 +143,36 @@ def crack_challenge12_oracle(enc_func):
     len_unknown = challenge12_get_length_appended_data(enc_func)
     unknown = challenge12_get_appended_data(enc_func, enc_mode, block_size, len_unknown)
     return unknown
+
+def profile_for(email, uid=10, role='user'):
+    email = email.replace('&', '').replace('=', '')
+    return '&'.join(['email='+email, 'uid='+str(uid), 'role='+role])
+
+def encrypt_profile(iv, key, profile, enc_func):
+    return enc_func(iv, key, profile)
+
+def parse_profile(profile):
+    profile_map = {}
+    fields = str(profile, 'utf-8').split('&')
+    for field in fields:
+        key, value = tuple(field.split('='))
+        if value.isdigit():
+            profile_map[key] = int(value)
+        else:
+            profile_map[key] = value
+
+    return profile_map
+
+def decrypt_and_parse(iv, key, encrypted_profile, dec_func):
+    return parse_profile(dec_func(iv, key, encrypted_profile))
+
+def generate_encrypted_admin_user():
+    iv = b'\x00'*16
+    key = bytes([randint(0,255) for i in range(16)])
+    admin_block_profile = profile_for('fo@bar.comadmin' + '\x0b'*11)
+    role_offset_profile = profile_for('foo11@bar.com')
+    encrypted_admin = breakup_data(encrypt_profile(iv, key, bytes(admin_block_profile, 'utf-8'), encrypt_ecb),16)[1]
+    cprofile = breakup_data(encrypt_profile(iv, key, bytes(role_offset_profile, 'utf-8'), encrypt_ecb),16)
+    chopped = cprofile[:len(cprofile)-1]
+    encrypted_profile = b''.join(cprofile + [encrypted_admin])
+    return {"Profile": encrypted_profile, "Key": key, "Decryption": decrypt_and_parse(iv, key, encrypted_profile, decrypt_ecb)}
