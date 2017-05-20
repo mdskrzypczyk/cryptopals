@@ -79,3 +79,65 @@ def identify_ecb_encrypted_data(dataset):
         reps.append((rep,candidate))
     best_candidate = sorted(reps, key = lambda x : max(x[0].values()))[-1]
     return b64encode(best_candidate[1])
+
+def identify_oracle_encryption(enc_func):
+    test_data = bytes([0]*44)
+    encrypted = enc_func(test_data)
+    blocks = breakup_data(encrypted, 16)
+    if len(set(blocks)) < len(blocks):
+        return 'ecb'
+    else:
+        return 'cbc'
+
+def get_block_size(enc_func):
+    data = b'\x00'
+    enc_data = enc_func(b'')
+    orig_len = len(enc_data)
+    while orig_len == len(enc_func(data)):
+        data += b'\x00'
+    base_len = len(enc_func(data))
+    while base_len == len(enc_func(data)):
+        data += b'\x00'
+    return len(enc_func(data)) - base_len
+
+def challenge12_get_length_appended_data(enc_func):
+    data = b'\x00'
+    enc_data = enc_func(b'')
+    orig_len = len(enc_data)
+    while orig_len == len(enc_func(data)):
+        data += b'\x00'
+    return orig_len - len(data)
+
+def challenge12_get_byte(enc_func, prefix, known, block_size, block_num):
+    block_byte = {}
+    for byte in range(256):
+        byte = bytes([byte])
+        block = breakup_data(enc_func((prefix + known)[-16:] + byte), block_size)[0]
+        block_byte[block] = byte
+    enc_short = breakup_data(enc_func(prefix), block_size)[block_num]
+    return block_byte[enc_short]
+
+def challenge12_get_appended_data(enc_func, enc_mode, block_size, len_unknown):
+    known = b''
+    num_blocks = int(len(enc_func(b''))/block_size)
+    prefix = b'\x00' * block_size
+    for block_num in range(num_blocks):
+        known_block = b''
+        
+        for byte_num in range(1, block_size+1):
+            byte = challenge12_get_byte(enc_func, prefix[byte_num:], known_block, block_size, block_num)
+            known_block += byte
+            known += byte
+            if len(known) == len_unknown:
+                return known
+
+        prefix = known_block
+
+    return known
+
+def crack_challenge12_oracle(enc_func):
+    block_size = get_block_size(enc_func)
+    enc_mode = identify_oracle_encryption(enc_func)
+    len_unknown = challenge12_get_length_appended_data(enc_func)
+    unknown = challenge12_get_appended_data(enc_func, enc_mode, block_size, len_unknown)
+    return unknown

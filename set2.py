@@ -11,11 +11,15 @@ def challenge10():
 		data = f.read()
 	return decrypt_cbc(iv, key, data)
 
+from cipher_tools.oracles import challenge11_oracle
+from cipher_tools.cracking import identify_oracle_encryption
 def challenge11():
-	pass
+	return identify_oracle_encryption(challenge11_oracle)
 
+from cipher_tools.oracles import challenge12_oracle
+from cipher_tools.cracking import crack_challenge12_oracle
 def challenge12():
-	pass
+	return crack_challenge12_oracle(challenge12_oracle)
 
 def challenge13():
 	pass
