@@ -30,7 +30,10 @@ def challenge14():
 
 from cipher_tools.padding import pkcs7pad_verify
 def challenge15():
-	pass
+	result_1 = pkcs7pad_verify(b'ICE ICE BABY\x04\x04\x04\x04', 16)
+	result_2 = pkcs7pad_verify(b'ICE ICE BABY\x05\x05\x05\x05', 16)
+	result_3 = pkcs7pad_verify(b'ICE ICE BABY\x01\x02\x03\x04', 16)
+	return (result_1, result_2, result_3)
 
 def challenge16():
 	pass

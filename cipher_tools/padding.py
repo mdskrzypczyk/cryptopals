@@ -11,12 +11,12 @@ def pkcs7pad_verify(data, block_size):
 	if len(data) % block_size != 0:
 		return False
 
-	pad_len = ord(data[-1])
-	print(pad_len)
+	pad_len = data[-1]
+
 	if pad_len > block_size:
 		return False
 
-	pad = chr(pad_len)*pad_len
+	pad = bytes(chr(pad_len)*pad_len, 'utf-8')
 	return data[-pad_len:] == pad
 
 
