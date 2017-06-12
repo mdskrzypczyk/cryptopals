@@ -4,7 +4,8 @@ from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
 from cipher_tools.encryption import *
-    
+from cipher_tools.padding import *
+
 def crack_one_char_xor(hex_string):
     candidate_keys = ["{0:02x}".format(i)*len(hex_string) for i in range(256)]
     hex_decryptions = [xor_hex_strings(hex_string, k) for k in candidate_keys]
@@ -176,3 +177,62 @@ def generate_encrypted_admin_user():
     chopped = cprofile[:len(cprofile)-1]
     encrypted_profile = b''.join(cprofile + [encrypted_admin])
     return {"Profile": encrypted_profile, "Key": key, "Decryption": decrypt_and_parse(iv, key, encrypted_profile, decrypt_ecb)}
+
+def challenge14_repeat_cipherblock_index(cipher, block_size):
+	cipher_blocks = breakup_data(cipher, block_size)
+	for i in range(len(cipher_blocks)-1):
+		if cipher_blocks[i] == cipher_blocks[i+1]:
+			return i
+
+	return -1
+
+def challenge14_get_len_random(enc_func, block_size):
+	data = b'\x00' * (2*block_size)
+	base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
+	while base_block_index == -1:
+		data += b'\x00'
+		base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
+
+	return base_block_index*block_size - len(data) % block_size
+
+
+def challenge14_get_byte(enc_func, prefix, known, block_size, block_num, len_prepad, base_block_index):
+    block_byte = {}
+    prepad = b'\x00' * len_prepad
+    for byte in range(256):
+        byte = bytes([byte])
+        block = breakup_data(enc_func(prepad + (prefix + known)[-16:] + byte), block_size)[base_block_index]
+        block_byte[block] = byte
+    enc_short = breakup_data(enc_func(prepad + prefix), block_size)[block_num]
+    return block_byte[enc_short]
+
+
+def challenge14_get_unknown(enc_func, enc_mode, block_size, len_unknown, len_prepad, block_index):
+    known = b''
+    num_blocks = int(len(enc_func(b'')) / block_size)
+    prefix = b'\x00' * block_size
+    base_block_index = block_index
+    for block_num in range(block_index, num_blocks):
+        known_block = b''
+
+        for byte_num in range(1, block_size + 1):
+            byte = challenge14_get_byte(enc_func, prefix[byte_num:], known_block, block_size, block_num, len_prepad,
+                            base_block_index)
+            known_block += byte
+            known += byte
+            if len(known) == len_unknown:
+                return known
+
+        prefix = known_block
+
+    return known
+
+def crack_challenge14_oracle(oracle):
+	block_size = get_block_size(oracle)
+	enc_mode = identify_oracle_encryption(oracle)
+	len_random = challenge14_get_len_random(oracle, block_size)
+	controlled_block_index = int(len(pkcs7pad(b'\x00'*len_random, block_size)) / block_size)
+	len_unknown = challenge12_get_length_appended_data(oracle) - len_random
+	len_prepad = (block_size - len_random) % block_size
+	unknown = challenge14_get_unknown(oracle, enc_mode, block_size, len_unknown, len_prepad, controlled_block_index)
+	return unknown
