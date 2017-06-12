@@ -179,21 +179,21 @@ def generate_encrypted_admin_user():
     return {"Profile": encrypted_profile, "Key": key, "Decryption": decrypt_and_parse(iv, key, encrypted_profile, decrypt_ecb)}
 
 def challenge14_repeat_cipherblock_index(cipher, block_size):
-	cipher_blocks = breakup_data(cipher, block_size)
-	for i in range(len(cipher_blocks)-1):
-		if cipher_blocks[i] == cipher_blocks[i+1]:
-			return i
+    cipher_blocks = breakup_data(cipher, block_size)
+    for i in range(len(cipher_blocks)-1):
+        if cipher_blocks[i] == cipher_blocks[i+1]:
+            return i
 
-	return -1
+    return -1
 
 def challenge14_get_len_random(enc_func, block_size):
-	data = b'\x00' * (2*block_size)
-	base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
-	while base_block_index == -1:
-		data += b'\x00'
-		base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
+    data = b'\x00' * (2*block_size)
+    base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
+    while base_block_index == -1:
+        data += b'\x00'
+        base_block_index = challenge14_repeat_cipherblock_index(enc_func(data), block_size)
 
-	return base_block_index*block_size - len(data) % block_size
+    return base_block_index*block_size - len(data) % block_size
 
 
 def challenge14_get_byte(enc_func, prefix, known, block_size, block_num, len_prepad, base_block_index):
@@ -228,11 +228,51 @@ def challenge14_get_unknown(enc_func, enc_mode, block_size, len_unknown, len_pre
     return known
 
 def crack_challenge14_oracle(oracle):
-	block_size = get_block_size(oracle)
-	enc_mode = identify_oracle_encryption(oracle)
-	len_random = challenge14_get_len_random(oracle, block_size)
-	controlled_block_index = int(len(pkcs7pad(b'\x00'*len_random, block_size)) / block_size)
-	len_unknown = challenge12_get_length_appended_data(oracle) - len_random
-	len_prepad = (block_size - len_random) % block_size
-	unknown = challenge14_get_unknown(oracle, enc_mode, block_size, len_unknown, len_prepad, controlled_block_index)
-	return unknown
+    block_size = get_block_size(oracle)
+    enc_mode = identify_oracle_encryption(oracle)
+    len_random = challenge14_get_len_random(oracle, block_size)
+    controlled_block_index = int(len(pkcs7pad(b'\x00'*len_random, block_size)) / block_size)
+    len_unknown = challenge12_get_length_appended_data(oracle) - len_random
+    len_prepad = (block_size - len_random) % block_size
+    unknown = challenge14_get_unknown(oracle, enc_mode, block_size, len_unknown, len_prepad, controlled_block_index)
+    return unknown
+
+def num_common_prefix_blocks(data1, data2):
+    broken_data1 = breakup_data(data1, 16)
+    broken_data2 = breakup_data(data2, 16)
+    count = 0
+    for b1, b2 in zip(broken_data1, broken_data2):
+        if b1 == b2:
+            count += 1
+        else:
+            return count
+
+    return count
+
+def challenge16_detect_controlled_block(oracle):
+    num_prefix_blocks = num_common_prefix_blocks(oracle(''), oracle('\x00'))
+    return num_prefix_blocks
+
+def challenge16_find_prepad(oracle, controlled_index):
+    if controlled_index == 0:
+        return 0
+    data = ''
+    while breakup_data(oracle(data),16)[controlled_index] != breakup_data(oracle(data+'\x00'),16)[controlled_index]:
+        data += 'a'
+    return data + 'a'*16
+
+def crack_challenge16_oracle(oracle, verifier):
+    blk_index = challenge16_detect_controlled_block(oracle)
+    prepad = challenge16_find_prepad(oracle, blk_index)
+    data = prepad + chr(ord(';') ^ 1) + 'admin=true' + chr(ord(';') ^ 1) + '\x00'*4
+    cipher = oracle(data)
+    c_blocks = breakup_data(cipher,16)
+    modded_block = list(c_blocks[blk_index+1])
+    modded_block[0] ^= 0x01
+    modded_block[11] ^=  0x01
+    new_cipher = b''.join(c_blocks[:blk_index+1] + [bytes(modded_block)] + c_blocks[-len(c_blocks) + blk_index+2:])
+    if verifier(new_cipher):
+        return new_cipher
+    else:
+        print("Failed")
+        return

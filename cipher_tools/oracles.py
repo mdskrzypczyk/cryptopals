@@ -1,6 +1,9 @@
 from random import randint
 from base64 import b64decode
+from urllib.parse import quote
+from cipher_tools.padding import *
 from cipher_tools.encryption import encrypt_ecb, encrypt_cbc
+from cipher_tools.decryption import decrypt_ecb, decrypt_cbc
 
 def challenge11_oracle(data):
 	key = bytes([randint(0,255) for i in range(16)])
@@ -34,3 +37,15 @@ def challenge14_oracle(data):
 	data = challenge14_rand + data + app
 	iv = bytes([0]*16)
 	return encrypt_ecb(iv, challenge14_key, data)
+
+challenge16_pre_data = quote("comment1=cooking%20MCs;userdata=", safe='%')
+challenge16_post_data = quote(";comment2=%20like%20a%20pound%20of%20bacon", safe='%')
+challenge16_key = bytes([randint(0,255) for i in range(16)])
+def challenge16_oracle(data):
+	wrapped_data = pkcs7pad(bytes(challenge16_pre_data + data + challenge16_post_data, 'utf-8'), 16)
+	iv = bytes([0] * 16)
+	return encrypt_cbc(iv, challenge16_key, wrapped_data)
+
+def challenge16_check_answer(cipher):
+	iv = bytes([0] * 16)
+	return b';admin=true;' in decrypt_cbc(iv, challenge16_key, cipher)

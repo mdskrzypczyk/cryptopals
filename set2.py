@@ -37,8 +37,8 @@ def challenge15():
 	result_3 = pkcs7pad_verify(b'ICE ICE BABY\x01\x02\x03\x04', 16)
 	return (result_1, result_2, result_3)
 
-#from cipher_tools.oracles import challenge16_oracle
-#from cipher_tools.cracking import crack_challenge16_oracle
+from cipher_tools.oracles import challenge16_oracle, challenge16_check_answer
+from cipher_tools.cracking import crack_challenge16_oracle
 def challenge16():
-	return crack_challenge16_oracle(challenge16_oracle)
+	return crack_challenge16_oracle(challenge16_oracle, challenge16_check_answer)
 
