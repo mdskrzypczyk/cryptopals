@@ -150,7 +150,7 @@ def profile_for(email, uid=10, role='user'):
     return '&'.join(['email='+email, 'uid='+str(uid), 'role='+role])
 
 def encrypt_profile(iv, key, profile, enc_func):
-    return enc_func(iv, key, profile)
+    return enc_func(iv, key, profile, pad=False)
 
 def parse_profile(profile):
     profile_map = {}
@@ -165,7 +165,7 @@ def parse_profile(profile):
     return profile_map
 
 def decrypt_and_parse(iv, key, encrypted_profile, dec_func):
-    return parse_profile(dec_func(iv, key, encrypted_profile))
+    return parse_profile(dec_func(iv, key, encrypted_profile, pad=True))
 
 def generate_encrypted_admin_user():
     iv = b'\x00'*16
@@ -174,7 +174,6 @@ def generate_encrypted_admin_user():
     role_offset_profile = profile_for('foo11@bar.com')
     encrypted_admin = breakup_data(encrypt_profile(iv, key, bytes(admin_block_profile, 'utf-8'), encrypt_ecb),16)[1]
     cprofile = breakup_data(encrypt_profile(iv, key, bytes(role_offset_profile, 'utf-8'), encrypt_ecb),16)
-    chopped = cprofile[:len(cprofile)-1]
     encrypted_profile = b''.join(cprofile + [encrypted_admin])
     return {"Profile": encrypted_profile, "Key": key, "Decryption": decrypt_and_parse(iv, key, encrypted_profile, decrypt_ecb)}
 

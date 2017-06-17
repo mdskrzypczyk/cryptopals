@@ -1,6 +1,6 @@
 from Crypto.Cipher import AES
-from cipher_tools.data_manipulation import breakup_data
 from cipher_tools.padding import remove_pkcs7pad
+from cipher_tools.data_manipulation import breakup_data
 
 def single_byte_ascii_decryptions(target_string):
     decrypted = single_byte_xor_map(target_string)
@@ -12,18 +12,21 @@ def single_byte_ascii_decryptions(target_string):
 
     return ascii_decryptions
 
-def decrypt_ecb(iv, key, data):
+def decrypt_ecb(iv, key, data, pad):
 	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
 	data = bytes([a ^ b for a,b in zip(iv*int(len(data)/16), aes.decrypt(data))])
+	if pad:
+		data = remove_pkcs7pad(data)
 	return data
 
-def decrypt_cbc(iv, key, cipher):
+def decrypt_cbc(iv, key, cipher, pad):
 	cipher_blocks = breakup_data(cipher, 16)
 	data = bytes([])
 	for c in cipher_blocks:
-		dec_c = decrypt_ecb(iv, key, c)
+		dec_c = decrypt_ecb(iv, key, c, pad=False)
 		data += dec_c
 		iv = c
 
-	pad_len = list(data)[-1]
-	return data[:-pad_len]
+	if pad:
+		data = remove_pkcs7pad(data)
+	return data

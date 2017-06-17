@@ -40,7 +40,7 @@ def challenge7():
 	key = "YELLOW SUBMARINE"
 	with open('challenge_data/7.txt') as f:
 		data = b64decode(f.read())
-	return decrypt_ecb(iv, key, data)
+	return decrypt_ecb(iv, key, data, pad=True)
 
 
 from cipher_tools.cracking import identify_ecb_encrypted_data

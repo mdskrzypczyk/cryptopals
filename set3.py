@@ -1,5 +1,8 @@
+from random import randint
 def challenge17():
-    pass
+
+
+
 
 def challenge18():
     pass

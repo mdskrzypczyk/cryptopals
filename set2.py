@@ -3,13 +3,14 @@ def challenge9():
 	data = b'YELLOW SUBMARINE'
 	return pkcs7pad(data, 20)
 
+from base64 import b64decode
 from cipher_tools.decryption import decrypt_cbc
 def challenge10():
 	iv = bytes(16)
 	key = b'YELLOW SUBMARINE'
-	with open('challenge_data/12.txt') as f:
-		data = f.read()
-	return decrypt_cbc(iv, key, data)
+	with open('challenge_data/10.txt') as f:
+		data = b64decode(f.read())
+	return decrypt_cbc(iv, key, data, pad=True)
 
 from cipher_tools.oracles import challenge11_oracle
 from cipher_tools.cracking import identify_oracle_encryption
