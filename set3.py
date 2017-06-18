@@ -11,8 +11,10 @@ def challenge18():
     data = b64decode("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==")
     return decrypt_ctr(nonce, key, data)
 
+from cipher_tools.cracking import crack_common_nonce_ctr
+from cipher_tools.oracles import get_challenge19_cipherset
 def challenge19():
-    pass
+    return crack_common_nonce_ctr(get_challenge19_cipherset())
 
 def challenge20():
     pass

@@ -1,4 +1,5 @@
 import binascii
+import operator
 from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
@@ -342,3 +343,68 @@ def crack_challenge17_oracle(oracle, iv, cipher):
         known += r_blk
 
     return remove_pkcs7pad(known)
+
+
+def recover_common_nonce_ctr_key_pairs(cipher1, cipher2):
+    pos = 0
+    index_key_pairs = {}
+    for c1, c2 in zip(cipher1, cipher2):
+        p = bytes([c1 ^ c2])
+        if p.isupper() or p.islower():
+            index_key_pairs[pos] = (c1 ^ 32, c2 ^ 32)
+        pos += 1
+    return index_key_pairs
+
+
+def crack_common_nonce_ctr_key_via_spaces(cipherset):
+    recovered_key_dict = {}
+    for cipher1 in cipherset:
+        for cipher2 in cipherset - set([cipher1]):
+            recovered_pairs = recover_common_nonce_ctr_key_pairs(cipher1, cipher2)
+            for index, k in recovered_pairs.items():
+                k1, k2 = k
+                if index not in recovered_key_dict.keys():
+                    recovered_key_dict[index] = {k1: 1, k2: 1}
+
+                else:
+                    index_key_dict = recovered_key_dict[index]
+                    k1_count = index_key_dict.get(k1, 0)
+                    index_key_dict[k1] = k1_count + 1
+                    k2_count = index_key_dict.get(k2, 0)
+                    index_key_dict[k2] = k2_count + 1
+
+                    recovered_key_dict[index] = index_key_dict
+
+    keystream_length = max([len(cipher) for cipher in cipherset])
+    recovered_key = []
+    for index in range(keystream_length):
+
+        if index in recovered_key_dict.keys():
+            index_key_dict = recovered_key_dict[index]
+            keystream_byte = max(index_key_dict.items(), key=operator.itemgetter(1))[0]
+            recovered_key.append(keystream_byte)
+        else:
+            recovered_key.append(None)
+
+    return recovered_key
+
+
+def crack_common_nonce_ctr(cipherset):
+    recovered_key = crack_common_nonce_ctr_key_via_spaces(set(cipherset))
+    cipher = list(cipherset)[37]
+    decrypted = []
+    recovered_key[0] = cipherset[0][0] ^ ord('I')
+    recovered_key[30] = cipherset[27][30] ^ ord('e')
+    recovered_key[31] = cipherset[27][31] ^ ord('n')
+    recovered_key[33] = cipherset[37][33] ^ ord('t')
+    recovered_key[34] = cipherset[37][34] ^ ord('u')
+    recovered_key[35] = cipherset[37][35] ^ ord('r')
+    recovered_key[36] = cipherset[37][36] ^ ord('n')
+    recovered_key[37] = cipherset[37][37] ^ ord(',')
+    for c, k in zip(cipher, recovered_key):
+        if k:
+            decrypted.append(c ^ k)
+        else:
+            decrypted.append(0)
+
+    return (bytes(decrypted), bytes(recovered_key))

@@ -2,8 +2,8 @@ from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from cipher_tools.padding import *
-from cipher_tools.encryption import encrypt_ecb, encrypt_cbc
-from cipher_tools.decryption import decrypt_ecb, decrypt_cbc
+from cipher_tools.encryption import encrypt_ecb, encrypt_cbc, encrypt_ctr
+from cipher_tools.decryption import decrypt_ecb, decrypt_cbc, decrypt_ctr
 
 def challenge11_oracle(data):
 	block_size = 16
@@ -58,3 +58,9 @@ def challenge17_oracle(iv_cipher):
 	decrypted = decrypt_cbc(iv_cipher[0], challenge17_key, iv_cipher[1], pad=False)
 	block_size = len(iv_cipher[0])
 	return pkcs7pad_verify(decrypted, block_size)
+
+challenge19_nonce = bytes(16)
+challenge19_key = bytes([randint(0, 15) for i in range(16)])
+challenge19_dataset = [b64decode(data) for data in open('challenge_data/19.txt').read().splitlines()]
+def get_challenge19_cipherset():
+	return [encrypt_ctr(challenge19_nonce, challenge19_key, data) for data in challenge19_dataset]
