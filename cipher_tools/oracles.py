@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from cipher_tools.padding import *
@@ -51,9 +51,10 @@ def challenge16_check_answer(cipher):
 
 challenge17_iv = bytes([randint(0,255) for i in range(16)])
 challenge17_key = bytes([randint(0,255) for i in range(16)])
-with open('challenge_data/17.txt') as f:
-	strings = f.read().splitlines()
-	random_string = bytes(strings[randint(0, len(strings) - 1)], 'utf-8')
-def challenge17_oracle():
-	padded_str = pkcs7pad(chosen_str, 16)
-	return (iv, encrypt_cbc(iv, key, padded_str))
+challenge17_cipher = encrypt_cbc(challenge17_iv, challenge17_key,
+								 bytes(choice(open('challenge_data/17.txt').read().splitlines()), 'utf-8'),
+								 pad=True)
+def challenge17_oracle(iv_cipher):
+	decrypted = decrypt_cbc(iv_cipher[0], challenge17_key, iv_cipher[1], pad=False)
+	block_size = len(iv_cipher[0])
+	return pkcs7pad_verify(decrypted, block_size)

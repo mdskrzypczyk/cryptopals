@@ -30,3 +30,22 @@ def decrypt_cbc(iv, key, cipher, pad):
 	if pad:
 		data = remove_pkcs7pad(data)
 	return data
+
+def gen_ctr_key_stream(key, data):
+	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
+	return aes.encrypt(data)
+
+def decrypt_ctr(nonce, key, cipher):
+	cipher_blocks = breakup_data(cipher, len(key))
+
+	data = b''
+	counter = int.from_bytes(nonce, 'big')
+	for block in cipher_blocks:
+		key_stream = gen_ctr_key_stream(key, nonce)
+		dec_b = bytes([k^d for k,d in zip(key_stream, block)])
+		data += dec_b
+
+		counter += 72057594037927936
+		nonce = counter.to_bytes(16, 'big')
+
+	return data

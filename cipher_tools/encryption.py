@@ -22,3 +22,22 @@ def encrypt_cbc(iv, key, data, pad):
 		iv = enc_b
 
 	return cipher
+
+def gen_ctr_key_stream(key, data):
+	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
+	return aes.encrypt(data)
+
+def encrypt_ctr(nonce, key, data):
+	data_blocks = breakup_data(data, 16)
+
+	cipher = b''
+	counter = int.from_bytes(nonce, 'big')
+	for block in data_blocks:
+		key_stream = gen_ctr_key_stream(key, nonce)
+		enc_b = bytes([k^d for k,d in zip(key_stream, block)])
+		cipher += enc_b
+
+		counter += 72057594037927936
+		nonce = counter.to_bytes(16, 'big')
+
+	return cipher
