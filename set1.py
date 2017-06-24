@@ -30,7 +30,7 @@ from base64 import *
 from cipher_tools.cracking import crack_repeated_key_xor
 def challenge6():
 	with open('challenge_data/6.txt') as f:
-		data = str(b64decode(f.read()), 'utf-8')
+		data = b64decode(f.read())
 	return crack_repeated_key_xor(data)
 
 

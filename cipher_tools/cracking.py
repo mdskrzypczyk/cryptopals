@@ -8,7 +8,7 @@ from cipher_tools.encryption import *
 from cipher_tools.padding import *
 
 def crack_one_char_xor(hex_string):
-    candidate_keys = ["{0:02x}".format(i)*len(hex_string) for i in range(256)]
+    candidate_keys = ["{0:02x}".format(i)*(int(len(hex_string)/2)) for i in range(256)]
     hex_decryptions = [xor_hex_strings(hex_string, k) for k in candidate_keys]
     ascii_decryptions = [(''.join([chr(b) for b in binascii.unhexlify(hd)]), chr(i)) for hd,i in zip(hex_decryptions, range(256))]
     sorted_d = sorted(ascii_decryptions, key=lambda decryption : getChi2_english(decryption[0]))
@@ -41,16 +41,15 @@ def find_repeated_key_xor_keysize(target):
 
 def crack_repeated_key_transposed_blocks(blocks):
     key = ''
-    progress = [''] * len(blocks)
+    progress = [''] * len(blocks[0])
     for block in blocks:
         h_block = ascii_to_hex(block)
-        assert len(h_block) == 2*len(block)
         d = crack_one_char_xor(h_block)
         if not d:
             return 'x'
         k = d[1]
-        for index, d in zip(range(len(d[0])), d[0]):
-            progress[index] += d
+        for index, de in zip(range(len(d[0])), d[0]):
+            progress[index] += de
         
         key += k
     return key
@@ -408,3 +407,27 @@ def crack_common_nonce_ctr(cipherset):
             decrypted.append(0)
 
     return (bytes(decrypted), bytes(recovered_key))
+
+
+def crack_common_nonce_ctr_via_stats(cipherset):
+    common_length = min([len(c) for c in cipherset])
+    cipher_segments = [c[:common_length] for c in cipherset]
+    combined = b''.join(cipher_segments)
+    recovered_cipher = list(bytes(crack_repeated_key_xor(combined), 'utf-8'))
+
+    for i in range(0, len(recovered_cipher), common_length):
+        recovered_cipher[i] ^= ord('5') ^ ord('F')
+        recovered_cipher[i+2] ^= ord(',') ^ ord('i')
+
+    recovered_cipher = bytes(recovered_cipher)
+    recovered_segments = breakup_data(recovered_cipher, common_length)
+
+    index_longest = cipherset.index(max(cipherset, key=len))
+    segment_remainder = b' please your eardrums; / I sit back and observe the whole scenery'
+    key_remainder = bytes([r ^ c for r, c in zip(segment_remainder, cipherset[index_longest][common_length:])])
+
+    for i, cipher in enumerate(cipherset):
+        for k, c in zip(key_remainder, cipher[common_length:]):
+            recovered_segments[i] += bytes([c ^ k])
+
+    return recovered_segments

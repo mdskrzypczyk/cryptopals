@@ -16,8 +16,10 @@ from cipher_tools.oracles import get_challenge19_cipherset
 def challenge19():
     return crack_common_nonce_ctr(get_challenge19_cipherset())
 
+from cipher_tools.cracking import crack_common_nonce_ctr_via_stats
+from cipher_tools.oracles import get_challenge20_cipherset
 def challenge20():
-    pass
+    return crack_common_nonce_ctr_via_stats(get_challenge20_cipherset())
 
 def challenge21():
     pass

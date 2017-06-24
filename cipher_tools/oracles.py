@@ -64,3 +64,9 @@ challenge19_key = bytes([randint(0, 15) for i in range(16)])
 challenge19_dataset = [b64decode(data) for data in open('challenge_data/19.txt').read().splitlines()]
 def get_challenge19_cipherset():
 	return [encrypt_ctr(challenge19_nonce, challenge19_key, data) for data in challenge19_dataset]
+
+challenge20_nonce = bytes(16)
+challenge20_key = bytes([randint(0,15) for i in range(16)])
+challenge20_dataset = [b64decode(data) for data in open('challenge_data/20.txt').read().splitlines()]
+def get_challenge20_cipherset():
+	return [encrypt_ctr(challenge20_nonce, challenge20_key, data) for data in challenge20_dataset]

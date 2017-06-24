@@ -41,10 +41,10 @@ def getChi2_english(text):
 
 def hamming_distance(string1, string2):
     distance = 0
-    string1 += '\x00'*(len(string2) - len(string1))
-    string2 += '\x00'*(len(string1) - len(string2))
+    string1 += bytes(len(string2) - len(string1))
+    string2 += bytes(len(string1) - len(string2))
     for c1, c2 in zip(string1, string2):
-        xor = ord(c1) ^ ord(c2)
+        xor = c1 ^ c2
         bin_diff = bin(xor)
         distance += bin_diff.count('1')
     return distance
