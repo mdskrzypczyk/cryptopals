@@ -21,8 +21,10 @@ from cipher_tools.oracles import get_challenge20_cipherset
 def challenge20():
     return crack_common_nonce_ctr_via_stats(get_challenge20_cipherset())
 
-def challenge21():
-    pass
+from cipher_tools.rng import mersenne_twister_rng, MT19937_config
+def challenge21(seed = 5489):
+    return [hex(mersenne_twister_rng(seed, MT19937_config, i)) for i in range(MT19937_config['n'])]
+
 
 def challenge22():
     pass
