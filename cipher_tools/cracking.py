@@ -1,11 +1,13 @@
 import binascii
 import operator
+import time
 from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
 from cipher_tools.encryption import *
 from cipher_tools.padding import *
+from cipher_tools.rng import *
 
 def crack_one_char_xor(hex_string):
     candidate_keys = ["{0:02x}".format(i)*(int(len(hex_string)/2)) for i in range(256)]
@@ -431,3 +433,15 @@ def crack_common_nonce_ctr_via_stats(cipherset):
             recovered_segments[i] += bytes([c ^ k])
 
     return recovered_segments
+
+
+def crack_challenge22_oracle(oracle):
+    start = int(time.time())
+    val = oracle()
+    stop = int(time.time())
+    for i in range(start, stop):
+        output = mersenne_twister_rng(i, MT19937_config, 0)
+        if val == output:
+            return i
+
+    return None

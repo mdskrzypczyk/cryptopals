@@ -26,8 +26,10 @@ def challenge21(seed = 5489):
     return [hex(mersenne_twister_rng(seed, MT19937_config, i)) for i in range(MT19937_config['n'])]
 
 
+from cipher_tools.oracles import challenge22_oracle
+from cipher_tools.cracking import crack_challenge22_oracle
 def challenge22():
-    pass
+    return crack_challenge22_oracle(challenge22_oracle)
 
 def challenge23():
     pass
