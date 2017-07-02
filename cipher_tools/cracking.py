@@ -445,3 +445,26 @@ def crack_challenge22_oracle(oracle):
             return i
 
     return None
+
+
+def undo_temper_operation(fin_val, and_mask, shift_amount, length, dir):
+    str_fin = format(fin_val, '032b')
+    str_fin = ''.join(reversed(str_fin)) if dir == 'l' else str_fin
+    str_and = format(and_mask, '032b')
+    str_and = ''.join(reversed(str_and)) if dir == 'l' else str_and
+    str_rec = str_fin[:shift_amount]
+
+    for i in range(shift_amount, length):
+        f, a, rs = str_fin[i], str_and[i], str_rec[i-shift_amount]
+        str_rec += str((int(a) & int(rs)) ^ int(f))
+
+    str_rec = ''.join(reversed(str_rec)) if dir == 'l' else str_rec
+    return int(str_rec, 2)
+
+
+def mersenne_twister_untemper(y, config):
+    x = undo_temper_operation(y, int('1'*config['w'], 2), config['l'], config['w'], 'r')
+    x = undo_temper_operation(x, config['c'], config['t'], config['w'], 'l')
+    x = undo_temper_operation(x, config['b'], config['s'], config['w'], 'l')
+    x = undo_temper_operation(x, config['d'], config['u'], config['w'], 'r')
+    return x

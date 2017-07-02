@@ -31,8 +31,11 @@ from cipher_tools.cracking import crack_challenge22_oracle
 def challenge22():
     return crack_challenge22_oracle(challenge22_oracle)
 
-def challenge23():
-    pass
+from cipher_tools.cracking import mersenne_twister_untemper
+def challenge23(seed = 5489):
+    rng_output = [mersenne_twister_rng(seed, MT19937_config, i) for i in range(624)]
+    recovered_state = [mersenne_twister_untemper(o, MT19937_config) for o in rng_output]
+    return recovered_state
 
 def challenge24():
     pass
