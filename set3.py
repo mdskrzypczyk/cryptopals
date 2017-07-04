@@ -37,5 +37,7 @@ def challenge23(seed = 5489):
     recovered_state = [mersenne_twister_untemper(o, MT19937_config) for o in rng_output]
     return recovered_state
 
+from cipher_tools.oracles import challenge24_oracle
+from cipher_tools.cracking import crack_challenge24_oracle
 def challenge24():
-    pass
+    return crack_challenge24_oracle(challenge24_oracle)

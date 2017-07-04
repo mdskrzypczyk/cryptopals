@@ -1,6 +1,8 @@
 from Crypto.Cipher import AES
+from cipher_tools.rng import mersenne_twister_rng
 from cipher_tools.padding import pkcs7pad
 from cipher_tools.data_manipulation import breakup_data
+
 def encrypt_ecb(iv, key, data, pad):
 	block_size = len(key)
 	aes = AES.AESCipher(key=key, mode=AES.MODE_ECB)
@@ -39,5 +41,18 @@ def encrypt_ctr(nonce, key, data):
 
 		counter += 72057594037927936
 		nonce = counter.to_bytes(16, 'big')
+
+	return cipher
+
+def encrypt_mersenne(seed, data, config):
+	if seed > 2**16 - 1:
+		raise Exception('seed must be 16 bits')
+
+	data_chunks = [data[i:i+4] for i in range(0, len(data), 4)]
+	cipher = b''
+	for i, data_chunk in enumerate(data_chunks):
+		val = mersenne_twister_rng(seed, config, i)
+		key_bytes = val.to_bytes(4, byteorder='big')
+		cipher += bytes([k ^ d for k, d in zip(key_bytes, data_chunk)])
 
 	return cipher

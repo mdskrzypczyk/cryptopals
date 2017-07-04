@@ -1,4 +1,5 @@
 from Crypto.Cipher import AES
+from cipher_tools.rng import mersenne_twister_rng
 from cipher_tools.padding import remove_pkcs7pad
 from cipher_tools.data_manipulation import breakup_data
 
@@ -47,5 +48,18 @@ def decrypt_ctr(nonce, key, cipher):
 
 		counter += 72057594037927936
 		nonce = counter.to_bytes(16, 'big')
+
+	return data
+
+def decrypt_mersenne(seed, cipher, config):
+	if seed > 2**16 - 1:
+		raise Exception('seed must be 16 bits')
+
+	cipher_chunks = [cipher[i:i+4] for i in range(0, len(cipher), 4)]
+	data = b''
+	for i, cipher_chunk in enumerate(cipher_chunks):
+		val = mersenne_twister_rng(seed, config, i)
+		key_bytes = val.to_bytes(4, byteorder='big')
+		data += bytes([k ^ c for k, c in zip(key_bytes, cipher_chunk)])
 
 	return data

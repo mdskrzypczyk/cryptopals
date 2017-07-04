@@ -468,3 +468,25 @@ def mersenne_twister_untemper(y, config):
     x = undo_temper_operation(x, config['b'], config['s'], config['w'], 'l')
     x = undo_temper_operation(x, config['d'], config['u'], config['w'], 'r')
     return x
+
+
+def crack_challenge24_oracle(oracle):
+    len_plain = 16
+    known_byte = b'A'
+    plaintext = known_byte*len_plain
+    ciphertext = oracle(plaintext)
+
+    num_extra_bytes = len(ciphertext) % 4
+    if num_extra_bytes:
+        ciphertext = ciphertext[:-num_extra_bytes]
+
+    key_idx = int(len(ciphertext) / 4) - 3
+    len_key_bytes = 12
+    keyed_bytes = ciphertext[-len_key_bytes:]
+    key_sequence = bytes([ord(known_byte) ^ kb for kb in keyed_bytes])
+    for i in range(2**16 - 1):
+        keystream = b''.join([mersenne_twister_rng(i, MT19937_config, r).to_bytes(4, byteorder='big') for r in range(key_idx, key_idx+3)])
+        if keystream[-len(key_sequence):] == key_sequence:
+            return i
+
+    raise Exception("Key not found")

@@ -4,7 +4,7 @@ from base64 import b64decode
 from urllib.parse import quote
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
-from cipher_tools.encryption import encrypt_ecb, encrypt_cbc, encrypt_ctr
+from cipher_tools.encryption import encrypt_ecb, encrypt_cbc, encrypt_ctr, encrypt_mersenne
 from cipher_tools.decryption import decrypt_ecb, decrypt_cbc, decrypt_ctr
 
 def challenge11_oracle(data):
@@ -68,7 +68,7 @@ def get_challenge19_cipherset():
 	return [encrypt_ctr(challenge19_nonce, challenge19_key, data) for data in challenge19_dataset]
 
 challenge20_nonce = bytes(16)
-challenge20_key = bytes([randint(0,15) for i in range(16)])
+challenge20_key = bytes([randint(0, 255) for i in range(16)])
 challenge20_dataset = [b64decode(data) for data in open('challenge_data/20.txt').read().splitlines()]
 def get_challenge20_cipherset():
 	return [encrypt_ctr(challenge20_nonce, challenge20_key, data) for data in challenge20_dataset]
@@ -81,3 +81,8 @@ def challenge22_oracle():
 	delay = randint(40, 1000)
 	time.sleep(delay)
 	return val
+
+challenge24_seed = randint(0, 2**16 - 1)
+challenge24_pre = bytes([randint(0, 255) for i in range(randint(0,400))])
+def challenge24_oracle(plaintext):
+	return encrypt_mersenne(challenge24_seed, challenge24_pre + plaintext, MT19937_config)
