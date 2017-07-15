@@ -86,3 +86,14 @@ challenge24_seed = randint(0, 2**16 - 1)
 challenge24_pre = bytes([randint(0, 255) for i in range(randint(0,400))])
 def challenge24_oracle(plaintext):
 	return encrypt_mersenne(challenge24_seed, challenge24_pre + plaintext, MT19937_config)
+
+challenge25_iv = bytes([randint(0, 255) for i in range(16)])
+challenge25_key = bytes([randint(0, 255) for i in range(16)])
+def challenge25_oracle():
+	with open("challenge_data/25.txt") as f:
+		data = decrypt_ecb(bytes(16), b"YELLOW SUBMARINE", b64decode(f.read()), pad=True)
+	return encrypt_ctr(challenge25_iv, challenge25_key, data)
+
+def challenge25_edit(ciphertext, offset, newtext, key=challenge25_key):
+	decrypted = decrypt_ctr(challenge25_iv, key, ciphertext)
+	return encrypt_ctr(challenge25_iv, key, decrypted[:offset] + newtext)

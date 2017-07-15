@@ -490,3 +490,8 @@ def crack_challenge24_oracle(oracle):
             return i
 
     raise Exception("Key not found")
+
+def crack_challenge25_oracle(oracle, edit):
+    ciphertext = oracle()
+    plaintext = edit(ciphertext, 0, ciphertext)
+    return plaintext
