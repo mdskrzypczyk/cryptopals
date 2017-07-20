@@ -97,3 +97,16 @@ def challenge25_oracle():
 def challenge25_edit(ciphertext, offset, newtext, key=challenge25_key):
 	decrypted = decrypt_ctr(challenge25_iv, key, ciphertext)
 	return encrypt_ctr(challenge25_iv, key, decrypted[:offset] + newtext)
+
+challenge26_pre_data = bytes(quote("comment1=cooking%20MCs;userdata=", safe='%'), 'utf-8')
+challenge26_post_data = bytes(quote(";comment2=%20like%20a%20pound%20of%20bacon", safe='%'), 'utf-8')
+challenge26_key = bytes([randint(0,255) for i in range(16)])
+def challenge26_oracle(data):
+	wrapped_data = pkcs7pad(challenge26_pre_data + data + challenge26_post_data, 16)
+	iv = bytes([0] * 16)
+	return encrypt_ctr(iv, challenge26_key, wrapped_data)
+
+def challenge26_check_answer(cipher):
+	iv = bytes([0] * 16)
+	data = decrypt_ctr(iv, challenge26_key, cipher)
+	return b';admin=true' in data

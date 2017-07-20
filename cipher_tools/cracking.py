@@ -495,3 +495,12 @@ def crack_challenge25_oracle(oracle, edit):
     ciphertext = oracle()
     plaintext = edit(ciphertext, 0, ciphertext)
     return plaintext
+
+def crack_challenge26_oracle(oracle):
+    admin_string = b"1;admin=true"
+    x_string = b"1\x00admin\x00true"
+    x_admin = admin_string.replace(b';', b':').replace(b'=', b'<')
+    cx_string = oracle(x_string)
+    cx_admin = oracle(x_admin)
+    crafted = [ca if ca == cx else ca ^ 1 for ca, cx in zip(cx_admin, cx_string)]
+    return crafted
