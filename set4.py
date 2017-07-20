@@ -4,8 +4,11 @@ from cipher_tools.cracking import crack_challenge25_oracle
 def challenge25():
     return crack_challenge25_oracle(challenge25_oracle, challenge25_edit)
 
+from cipher_tools.oracles import challenge26_oracle, challenge26_check_answer
+from cipher_tools.cracking import crack_challenge26_oracle
 def challenge26():
-    pass
+    crafted = crack_challenge26_oracle(challenge26_oracle)
+    return challenge26_check_answer(crafted)
 
 def challenge27():
     pass
