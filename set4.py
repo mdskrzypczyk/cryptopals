@@ -10,8 +10,10 @@ def challenge26():
     crafted = crack_challenge26_oracle(challenge26_oracle)
     return challenge26_check_answer(crafted)
 
+from cipher_tools.oracles import challenge27_oracle, challenge27_check_answer
+from cipher_tools.cracking import crack_challenge27_oracle
 def challenge27():
-    pass
+    return crack_challenge27_oracle(challenge27_oracle, challenge27_check_answer)
 
 def challenge28():
     pass

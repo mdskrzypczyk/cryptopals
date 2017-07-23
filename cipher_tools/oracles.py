@@ -110,3 +110,25 @@ def challenge26_check_answer(cipher):
 	iv = bytes([0] * 16)
 	data = decrypt_ctr(iv, challenge26_key, cipher)
 	return b';admin=true' in data
+
+challenge27_pre_data = bytes(quote("comment1=cooking%20MCs;userdata=", safe='%'), 'utf-8')
+challenge27_post_data = bytes(quote(";comment2=%20like%20a%20pound%20of%20bacon", safe='%'), 'utf-8')
+challenge27_key = bytes([randint(0,255) for i in range(16)])
+class Exception_challenge27(Exception):
+	def __init__(self, data):
+		self.data = data
+
+def challenge27_oracle(data):
+	if any([d > 0x7F for d in data]):
+		raise Exception_challenge27(data=data)
+
+	wrapped_data = pkcs7pad(challenge27_pre_data + data + challenge27_post_data, 16)
+	iv = challenge27_key
+	return encrypt_cbc(iv, challenge27_key, wrapped_data, pad=True)
+
+def challenge27_check_answer(cipher):
+	iv = challenge27_key
+	data = decrypt_cbc(iv, challenge27_key, cipher, pad=False)
+	if any([d > 0x7F for d in data]):
+		raise Exception_challenge27(data=data)
+	return b';admin=true' in data

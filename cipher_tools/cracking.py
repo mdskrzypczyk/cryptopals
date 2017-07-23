@@ -504,3 +504,18 @@ def crack_challenge26_oracle(oracle):
     cx_admin = oracle(x_admin)
     crafted = [ca if ca == cx else ca ^ 1 for ca, cx in zip(cx_admin, cx_string)]
     return crafted
+
+def crack_challenge27_oracle(oracle, verifier):
+    counter = 0
+    while True:
+        data = counter.to_bytes(48, 'big')
+        data = bytes([d & 0x7F for d in data])
+        cipher = oracle(data)
+        c_blocks = breakup_data(cipher, 16)
+        crafted = c_blocks[0] + bytes(16) + c_blocks[0]
+        try:
+            verifier(crafted)
+        except Exception as e:
+            d_blocks = breakup_data(e.data, 16)
+            return bytes([d1 ^ d2 for d1, d2 in zip(d_blocks[0], d_blocks[2])])
+        counter += 1
