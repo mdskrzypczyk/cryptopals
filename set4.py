@@ -15,8 +15,9 @@ from cipher_tools.cracking import crack_challenge27_oracle
 def challenge27():
     return crack_challenge27_oracle(challenge27_oracle, challenge27_check_answer)
 
-def challenge28():
-    pass
+from cipher_tools.hashing import sha1
+def challenge28(data=b'The quick brown fox jumps over the lazy dog'):
+    return sha1(data)
 
 def challenge29():
     pass
