@@ -19,8 +19,15 @@ from cipher_tools.hashing import sha1
 def challenge28(data=b'abc'):
     return sha1(data)
 
-def challenge29():
-    pass
+from cipher_tools.padding import sha1pad, sha1pad_verify
+from cipher_tools.cracking import length_extend_sha1
+def challenge29(message=b"comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"):
+    msg_sha = sha1(message)
+    msg_len = len(message)*8
+    msg_len = msg_len + (-msg_len % 512)
+    mal_extension = b";admin=true;"
+    dub_msg_sha = sha1(sha1pad(message) + mal_extension)
+    return length_extend_sha1(msg_sha, msg_len, mal_extension) == dub_msg_sha
 
 def challenge30():
     pass
