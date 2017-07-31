@@ -22,12 +22,12 @@ def pkcs7pad_verify(data, block_size):
 	pad = bytes(chr(pad_len)*pad_len, 'utf-8')
 	return data[-pad_len:] == pad
 
-def sha1pad(message):
+def mdpad(message, byteorder='big'):
 	ml = len(message) * 8
-	message += b'\x80' + b'\x00' * (-(len(message) + 9) % 64) + ml.to_bytes(8, 'big')
+	message += b'\x80' + b'\x00' * (-(len(message) + 9) % 64) + ml.to_bytes(8, byteorder)
 	return message
 
-def sha1pad_verify(message):
+def mdpad_verify(message):
 	ml = struct.unpack(">Q", message[-8:])[0]
 	num_bytes = int(ml/8)
 	pad_len = -num_bytes % 64

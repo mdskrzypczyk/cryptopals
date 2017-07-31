@@ -526,3 +526,8 @@ def length_extend_sha1(sha, original_len, new_message):
     hh = [struct.unpack(">I", b)[0] for b in breakup_data(sha, 4)]
     total_len = original_len + len(new_message)*8
     return sha1(new_message, message_len=total_len, h0=hh[0], h1=hh[1], h2=hh[2], h3=hh[3], h4=hh[4])
+
+def length_extend_md4(md, original_len, new_message):
+    hh = [struct.unpack("<I", b)[0] for b in breakup_data(md, 4)]
+    total_len = original_len + len(new_message) * 8
+    return md4(new_message, message_len=total_len, h0=hh[0], h1=hh[1], h2=hh[2], h3=hh[3])
