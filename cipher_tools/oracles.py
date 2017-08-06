@@ -132,3 +132,4 @@ def challenge27_check_answer(cipher):
 	if any([d > 0x7F for d in data]):
 		raise Exception_challenge27(data=data)
 	return b';admin=true' in data
+

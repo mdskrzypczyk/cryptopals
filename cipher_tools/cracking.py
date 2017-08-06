@@ -2,6 +2,7 @@ import binascii
 import operator
 import time
 import struct
+import requests
 from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
@@ -531,3 +532,30 @@ def length_extend_md4(md, original_len, new_message):
     hh = [struct.unpack("<I", b)[0] for b in breakup_data(md, 4)]
     total_len = original_len + len(new_message) * 8
     return md4(new_message, message_len=total_len, h0=hh[0], h1=hh[1], h2=hh[2], h3=hh[3])
+
+def crack_challenge31_oracle():
+    host = 'http://127.0.0.1'
+    port = 5000
+    endpoint = 'challenge31/test/?file=set1.py&signature={}'
+    signature= b''
+    padding = b'\x00'*20
+    for i in range(64):
+        byte_time_dict = {}
+        for byte in range(256):
+            test_sig = (signature+byte.to_bytes(1, 'big')+padding)[:20]
+            url = "{}:{}/{}".format(host, str(port), endpoint.format(str(binascii.hexlify(test_sig), 'utf-8')))
+
+            start = time.time()
+            response = requests.get(url)
+            end = time.time()
+
+            if response.status_code == 200:
+                return test_sig
+
+            elif response.status_code == 500:
+                byte_time_dict[byte.to_bytes(1, 'big')] = end - start
+
+        signature += sorted(byte_time_dict.items(), key=lambda x: x[1])[-1][0]
+        print(signature)
+    print("Could not crack signature")
+    return b""

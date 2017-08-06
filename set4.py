@@ -39,8 +39,9 @@ def challenge30(message=b"comment1=cooking%20MCs;userdata=foo;comment2=%20like%2
     dub_msg_sha = md4(mdpad(message, 'little') + mal_extension)
     return length_extend_md4(msg_sha, msg_len, mal_extension) == dub_msg_sha
 
+from cipher_tools.cracking import crack_challenge31_oracle
 def challenge31():
-    pass
+    return crack_challenge31_oracle()
 
 def challenge32():
     pass

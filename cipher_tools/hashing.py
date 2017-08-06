@@ -2,14 +2,13 @@ import struct
 from cipher_tools.data_manipulation import breakup_data, left_rotate
 from cipher_tools.padding import mdpad
 
-def sha1(message, message_len=None, h0=0x67452301, h1=0xEFCDAB89, h2=0x98BADCFE, h3=0x10325476, h4=0xC3D2E1F):
+def sha1(message, message_len=None, h0=0x67452301, h1=0xEFCDAB89, h2=0x98BADCFE, h3=0x10325476, h4=0xC3D2E1F0):
     if message_len:
         num_bytes = int(message_len/8)
         pad_len = -num_bytes % 64
         message += b'\x80' + b'\x00'*(pad_len-9) + message_len.to_bytes(8, 'big')
     else:
         message = mdpad(message)
-
     chunks = breakup_data(message, 64)
 
     for chunk in chunks:
