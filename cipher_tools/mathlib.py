@@ -1,3 +1,5 @@
+from random import randint
+
 english_freq = [
     0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015,  # A-G
     0.06094, 0.06966, 0.00153, 0.00772, 0.04025, 0.02406, 0.06749,  # H-N
@@ -48,3 +50,22 @@ def hamming_distance(string1, string2):
         bin_diff = bin(xor)
         distance += bin_diff.count('1')
     return distance
+
+def modexp(g, u, p):
+    s = 1
+    while u != 0:
+        if u & 1:
+            s = (s * g) % p
+        u >>= 1
+        g = (g * g) % p
+    return s
+
+def generate_dh_keypair(p, g):
+    a = randint(0, p - 1)
+    A = modexp(g, a, p)
+    return (a, A)
+
+def diffie_hellman(p, B, a):
+    # Calculate shared secret
+    s = modexp(B, a, p)
+    return s

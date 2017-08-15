@@ -10,6 +10,7 @@ from cipher_tools.decryption import *
 from cipher_tools.encryption import *
 from cipher_tools.hashing import *
 from cipher_tools.padding import *
+from cipher_tools.protocols import *
 from cipher_tools.rng import *
 
 def crack_one_char_xor(hex_string):
@@ -559,3 +560,53 @@ def crack_challenge31_oracle():
         print(signature)
     print("Could not crack signature")
     return b""
+
+class mitm_dh_wire:
+    def __init__(self, dh_group=None):
+        self.wire = {}
+        self.mal_clients = {}
+        self.dh_group = dh_group
+
+    def __getitem__(self, item):
+        return self.wire[item]
+
+    def pop(self, item):
+        return self.wire.pop(item)
+
+    # Replace with whatever triggers the [] call of a map
+    def __setitem__(self, dest, data):
+        self.wire[dest] = data
+        fields = data.keys()
+        source = data["from"]
+        if set(["p", "g", "pub"]) < set(fields):
+            self._inject_params(source, dest, data)
+        elif set(["p", "g"]) < set(fields):
+            self._inject_dh_group(source, dest, data)
+        elif "pub" in fields:
+            self._inject_pub(source, dest, data)
+        elif "msg" in fields:
+            self._inject_msg(source, dest, data)
+        else:
+            self.wire[dest] = data
+
+    def _inject_params(self, source, dest, data):
+        self.mal_clients[dest] = DiffieHellmanClient(name=dest, wire=self.wire)
+        self.mal_clients[source] = DiffieHellmanClient(name=source, wire=self.wire, p=dh_group['p'], g=dh_group['g'])
+        self.mal_clients[dest]._recv_params()
+        self.mal_clients[source]._generate_keypair()
+        self.mal_clients[source]._send_params(dest)
+
+    def _inject_pub(self, source, dest, data):
+        self.mal_clients[dest]._recv_pub()
+        self.mal_clients[source]._send_pub(dest)
+
+    def _inject_msg(self, source, dest, data):
+        msg = self.mal_clients[dest]._recv_msg()
+        self.mal_clients[source]._send_msg(dest, msg)
+
+    def _inject_dh_group(self, source, dest, data):
+        self.mal_clients[dest] = DiffieHellmanClient(name=dest, wire=self.wire)
+        self.mal_clients[source] = DiffieHellmanClient(name=source, wire=self.wire, p=self.dh_group['p'], g=self.dh_group['g'])
+        self.mal_clients[dest]._recv_dh_group()
+        self.mal_clients[source]._generate_keypair()
+        self.mal_clients[source]._send_dh_group(dest)
