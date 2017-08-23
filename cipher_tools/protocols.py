@@ -1,8 +1,9 @@
+from hashlib import sha256
 from random import randint
 from cipher_tools.encryption import encrypt_cbc
 from cipher_tools.decryption import decrypt_cbc
 from cipher_tools.hashing import sha1
-from cipher_tools.mathlib import diffie_hellman, generate_dh_keypair
+from cipher_tools.mathlib import diffie_hellman, generate_dh_keypair, modexp
 
 class DiffieHellmanClient:
     def __init__(self, name, wire=None, p=37, g=5):
@@ -112,3 +113,96 @@ def challenge35_protocol(clientA, clientB, wire):
         clientB._reply_msg(clientA.name)
         recv_msg = clientA._recv_msg()
         assert msg == recv_msg
+
+SRP_config = {
+    'N': 0xf0155ced0c53bd6f58cd1644f0276d3198123ec3ec86f28388a5f7161f61491f97a99ac6765de691dd59b16e43f5177541042cffddc7ce5c0fbfd11743710da5d52101d4c63ad1442f2405f1fcf36082bc1aa9b9708f1cbc8e7471e5443d301da07443f81a0800091bde0e149e4743ecbfefe30efde37a5f83b308cc23b573eb,
+    'g': 2,
+    'k': 3,
+    'I': b'foo@bar.com',
+    'P': b'deadbeef'
+}
+
+class SRPClient(DiffieHellmanClient):
+    def __init__(self, config=SRP_config):
+        self.__dict__.update(config)
+        super(SRPClient, self).__init__(name='srp_client', p=self.N, g=self.g)
+
+    def email_and_pub(self):
+        self._generate_keypair()
+        return self.I, self.pub
+
+    def compute_uH(self, other_pub):
+        self.other_pub = other_pub
+        my_byte_pub = self.pub.to_bytes(int(self.pub.bit_length()/4) + 1, 'big')
+        other_byte_pub = other_pub.to_bytes(int(other_pub.bit_length()/4) + 1, 'big')
+        m = sha256()
+        m.update(my_byte_pub + other_byte_pub)
+        uH = m.digest()
+        self.u = int.from_bytes(uH, byteorder = 'big') 
+
+    def generate_K(self, salt):
+        m = sha256()
+        m.update(salt.to_bytes(int(salt.bit_length()/4) + 1, 'big') + self.I)
+        xH = m.digest()
+        x = int.from_bytes(xH, byteorder='big')
+        S = modexp(self.other_pub - self.k * modexp(self.g, x, self.N), self.prv + self.u * x, self.N)
+        m = sha256()
+        m.update(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
+        self.K = m.digest()
+
+    def get_HMAC_K(self):
+        m = sha256()
+        m.update(self.K)
+        return m.digest()
+
+class SRPServer(DiffieHellmanClient):
+    def __init__(self, config=SRP_config):
+        self.__dict__.update(config)
+        m = sha256()
+        self.salt = randint(0, 0xFFFFFFFF)
+        m.update(self.salt.to_bytes(int(self.salt.bit_length()/4) + 1, 'big') + self.I)
+        xH = m.digest()
+        x = int.from_bytes(xH, byteorder = 'big')
+        self.v = modexp(self.g, x, self.N)
+        super(SRPServer, self).__init__(name='srp_server', p=self.N, g=self.g)
+
+    def salt_and_pub(self):
+        self._generate_keypair()
+        self.pub = self.k * self.v + self.pub
+        return self.salt, self.pub
+
+    def compute_uH(self, other_pub):
+        self.other_pub = other_pub
+        my_byte_pub = self.pub.to_bytes(int(self.pub.bit_length()/4) + 1, 'big')
+        other_byte_pub = other_pub.to_bytes(int(other_pub.bit_length()/4) + 1, 'big')
+        m = sha256()
+        m.update(other_byte_pub + my_byte_pub)
+        uH = m.digest()   
+        self.u = int.from_bytes(uH, byteorder = 'big')
+
+    def generate_K(self):
+        S = modexp(self.other_pub * modexp(self.v, self.u, self.N), self.prv, self.N)
+        m = sha256()
+        m.update(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
+        self.K = m.digest()
+
+    def check_HMAC_K(self, HMAC):
+        m = sha256()
+        m.update(self.K)
+        return HMAC == m.digest()
+
+def challenge36_protocol():
+    client = SRPClient()
+    server = SRPServer()
+
+    email, c_pub = client.email_and_pub()
+    salt, s_pub = server.salt_and_pub()
+   
+    client.compute_uH(s_pub)
+    server.compute_uH(c_pub)
+
+    client.generate_K(salt)
+    server.generate_K()
+
+    hmac = client.get_HMAC_K()
+    return server.check_HMAC_K(hmac)

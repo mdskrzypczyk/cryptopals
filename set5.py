@@ -30,8 +30,9 @@ def challenge35():
     print(dh_group)
     challenge35_protocol(clientA, clientB, wire=mitm_dh_wire(dh_group))
 
+from cipher_tools.protocols import challenge36_protocol
 def challenge36():
-    pass
+    return challenge36_protocol()
 
 def challenge37():
     pass
