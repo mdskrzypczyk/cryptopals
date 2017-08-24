@@ -43,6 +43,7 @@ from cipher_tools.cracking import crack_challenge31_oracle
 def challenge31():
     return crack_challenge31_oracle()
 
+from cipher_tools.cracking import crack_challenge31_oracle_reduced_delay
 def challenge32():
-    pass
+    return crack_challenge31_oracle_reduced_delay()
 

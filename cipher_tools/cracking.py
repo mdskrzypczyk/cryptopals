@@ -537,7 +537,7 @@ def length_extend_md4(md, original_len, new_message):
 def crack_challenge31_oracle():
     host = 'http://127.0.0.1'
     port = 5000
-    endpoint = 'challenge31/test/?file=set1.py&signature={}'
+    endpoint = 'challenge31/?file=set1.py&signature={}'
     signature= b''
     padding = b'\x00'*20
     for i in range(64):
@@ -557,8 +557,6 @@ def crack_challenge31_oracle():
                 byte_time_dict[byte.to_bytes(1, 'big')] = end - start
 
         signature += sorted(byte_time_dict.items(), key=lambda x: x[1])[-1][0]
-        print(signature)
-    print("Could not crack signature")
     return b""
 
 class mitm_dh_wire:
@@ -610,3 +608,47 @@ class mitm_dh_wire:
         self.mal_clients[dest]._recv_dh_group()
         self.mal_clients[source]._generate_keypair()
         self.mal_clients[source]._send_dh_group(dest)
+
+def follow_lead(curr_sig=b'', timeout=0.0):
+    if len(curr_sig) == 20:
+        return None
+
+    host = 'http://127.0.0.1'
+    port = 5000
+    endpoint = 'challenge32/?file=set1.py&signature={}'
+    padding = b'\x00' * 20
+
+    byte_time_dict = {}
+    for byte in range(256):
+        time.sleep(0.02)
+        test_sig = (curr_sig + byte.to_bytes(1, 'big') + padding)[:20]
+        url = "{}:{}/{}".format(host, str(port), endpoint.format(str(binascii.hexlify(test_sig), 'utf-8')))
+
+        start = time.time()
+        response = requests.get(url)
+        end = time.time()
+
+        if response.status_code == 200:
+            return test_sig
+
+        elif response.status_code == 500:
+            byte_time_dict[byte.to_bytes(1, 'big')] = end - start
+
+    sig_leads = [(curr_sig + b[0], b[1]) for b in sorted(byte_time_dict.items(), key=lambda x: -x[1])]
+    if not sig_leads:
+        return None
+
+    avg_duration = sum([sl[1] for sl in sig_leads]) / len(sig_leads)
+    if avg_duration < timeout + 0.002:
+        return None
+
+    for sig, timeout in sig_leads:
+        res = follow_lead(sig, avg_duration)
+        if res:
+            return res
+
+    return None
+
+
+def crack_challenge31_oracle_reduced_delay():
+    return follow_lead()
