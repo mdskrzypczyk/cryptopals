@@ -1,3 +1,4 @@
+import socket
 from hashlib import sha256
 from random import randint
 from cipher_tools.encryption import encrypt_cbc
@@ -206,3 +207,70 @@ def challenge36_protocol():
 
     hmac = client.get_HMAC_K()
     return server.check_HMAC_K(hmac)
+
+challenge37_host = ''
+challenge37_port = 1337
+def challenge37_client():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.connect((challenge37_host, challenge37_port))
+        client = SRPClient()
+
+        email, c_pub = client.email_and_pub()
+
+        # Zero key
+        mal_pub = client.N * 1
+        client.pub = mal_pub
+        c_pub = mal_pub
+
+        pub_size = int(client.N.bit_length() / 4) + 1
+        data = email + c_pub.to_bytes(pub_size, 'big')
+        s.send(data)
+
+        data = s.recv(1024)
+        byte_salt = data[:4]
+        byte_s_pub = data[4:]
+        salt = int.from_bytes(byte_salt, 'big')
+        s_pub = int.from_bytes(byte_s_pub, 'big')
+        client.compute_uH(s_pub)
+        client.generate_K(salt)
+
+        # Because mal_pub % N == 0 we can predict what the hmac will be
+        m = sha256()
+        n = sha256()
+        m.update((0).to_bytes(int((0).bit_length() / 4) + 1, 'big'))
+        n.update(m.digest())
+        mal_hmac = n.digest()
+
+        s.send(mal_hmac)
+        resp = s.recv(1024)
+        if resp == b'OK':
+            print("SUCCESS")
+
+def challenge37_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind((challenge37_host, challenge37_port))
+        s.listen(1)
+        conn, addr = s.accept()
+        with conn:
+            server = SRPServer()
+
+            salt, s_pub = server.salt_and_pub()
+            pub_size = int(server.N.bit_length() / 4) + 1
+            data = salt.to_bytes(4, 'big') + s_pub.to_bytes(pub_size, 'big')
+            conn.send(data)
+
+            data = conn.recv(1024)
+            email = data[:len(server.I)]
+            byte_c_pub = data[len(server.I):]
+            c_pub = int.from_bytes(byte_c_pub, 'big')
+
+            server.compute_uH(c_pub)
+            server.generate_K()
+
+            hmac = conn.recv(1024)
+            if server.check_HMAC_K(hmac):
+                conn.send(b'OK')
+            else:
+                conn.send(b'BAD')

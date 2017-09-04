@@ -34,8 +34,16 @@ from cipher_tools.protocols import challenge36_protocol
 def challenge36():
     return challenge36_protocol()
 
+import threading
+from cipher_tools.protocols import challenge37_client, challenge37_server
 def challenge37():
-    pass
+    try:
+        s = threading.Thread(target=challenge37_server)
+        c = threading.Thread(target=challenge37_client)
+        s.start()
+        c.start()
+    except:
+        print("Failed to start server/client threads")
 
 def challenge38():
     pass
