@@ -1,9 +1,11 @@
 import socket
-from hashlib import sha256
+import string
 from random import randint
+from itertools import product
 from cipher_tools.encryption import encrypt_cbc
 from cipher_tools.decryption import decrypt_cbc
-from cipher_tools.hashing import sha1
+from cipher_tools.hashing import sha1, sha256
+from cipher_tools.mac import hmac
 from cipher_tools.mathlib import diffie_hellman, generate_dh_keypair, modexp
 
 class DiffieHellmanClient:
@@ -120,7 +122,7 @@ SRP_config = {
     'g': 2,
     'k': 3,
     'I': b'foo@bar.com',
-    'P': b'deadbeef'
+    'P': b'alligator'
 }
 
 class SRPClient(DiffieHellmanClient):
@@ -136,33 +138,25 @@ class SRPClient(DiffieHellmanClient):
         self.other_pub = other_pub
         my_byte_pub = self.pub.to_bytes(int(self.pub.bit_length()/4) + 1, 'big')
         other_byte_pub = other_pub.to_bytes(int(other_pub.bit_length()/4) + 1, 'big')
-        m = sha256()
-        m.update(my_byte_pub + other_byte_pub)
-        uH = m.digest()
+        uH = sha256(my_byte_pub + other_byte_pub)
         self.u = int.from_bytes(uH, byteorder = 'big') 
 
     def generate_K(self, salt):
-        m = sha256()
-        m.update(salt.to_bytes(int(salt.bit_length()/4) + 1, 'big') + self.I)
-        xH = m.digest()
+        self.salt = salt
+        xH = sha256(salt.to_bytes(int(salt.bit_length()/4) + 1, 'big') + self.P)
         x = int.from_bytes(xH, byteorder='big')
         S = modexp(self.other_pub - self.k * modexp(self.g, x, self.N), self.prv + self.u * x, self.N)
-        m = sha256()
-        m.update(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
-        self.K = m.digest()
+        self.K = sha256(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
 
     def get_HMAC_K(self):
-        m = sha256()
-        m.update(self.K)
-        return m.digest()
+        salt_bytes = self.salt.to_bytes(4, 'big')
+        return hmac(sha256, self.K, salt_bytes, 32)
 
 class SRPServer(DiffieHellmanClient):
     def __init__(self, config=SRP_config):
         self.__dict__.update(config)
-        m = sha256()
         self.salt = randint(0, 0xFFFFFFFF)
-        m.update(self.salt.to_bytes(int(self.salt.bit_length()/4) + 1, 'big') + self.I)
-        xH = m.digest()
+        xH = sha256(self.salt.to_bytes(int(self.salt.bit_length()/4) + 1, 'big') + self.P)
         x = int.from_bytes(xH, byteorder = 'big')
         self.v = modexp(self.g, x, self.N)
         super(SRPServer, self).__init__(name='srp_server', p=self.N, g=self.g)
@@ -176,21 +170,16 @@ class SRPServer(DiffieHellmanClient):
         self.other_pub = other_pub
         my_byte_pub = self.pub.to_bytes(int(self.pub.bit_length()/4) + 1, 'big')
         other_byte_pub = other_pub.to_bytes(int(other_pub.bit_length()/4) + 1, 'big')
-        m = sha256()
-        m.update(other_byte_pub + my_byte_pub)
-        uH = m.digest()   
+        uH = sha256(other_byte_pub + my_byte_pub)
         self.u = int.from_bytes(uH, byteorder = 'big')
 
     def generate_K(self):
         S = modexp(self.other_pub * modexp(self.v, self.u, self.N), self.prv, self.N)
-        m = sha256()
-        m.update(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
-        self.K = m.digest()
+        self.K = sha256(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
 
     def check_HMAC_K(self, HMAC):
-        m = sha256()
-        m.update(self.K)
-        return HMAC == m.digest()
+        salt_bytes = self.salt.to_bytes(4, 'big')
+        return HMAC == hmac(sha256, self.K, salt_bytes, 32)
 
 def challenge36_protocol():
     client = SRPClient()
@@ -236,11 +225,7 @@ def challenge37_client():
         client.generate_K(salt)
 
         # Because mal_pub % N == 0 we can predict what the hmac will be
-        m = sha256()
-        n = sha256()
-        m.update((0).to_bytes(int((0).bit_length() / 4) + 1, 'big'))
-        n.update(m.digest())
-        mal_hmac = n.digest()
+        mal_hmac = hmac(sha256, sha256((0).to_bytes(int((0).bit_length() / 4) + 1, 'big')), byte_salt, 32)
 
         s.send(mal_hmac)
         resp = s.recv(1024)
@@ -274,3 +259,68 @@ def challenge37_server():
                 conn.send(b'OK')
             else:
                 conn.send(b'BAD')
+
+class SimplifiedSRPClient(SRPClient):
+    def __init__(self, config=SRP_config):
+        super(SimplifiedSRPClient, self).__init__()
+
+    def generate_K(self, salt, other_pub, u):
+        self.other_pub = other_pub
+        self.salt = salt
+        xH = sha256(salt.to_bytes(int(salt.bit_length()/4) + 1, 'big') + self.P)
+        x = int.from_bytes(xH, byteorder='big')
+        S = modexp(self.other_pub, self.prv + u*x, self.N)
+        self.K = sha256(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
+
+    def get_HMAC(self):
+        salt_bytes = self.salt.to_bytes(int(self.salt.bit_length() / 4) + 1, 'big')
+        return hmac(sha256, self.K, salt_bytes, 32)
+
+class SimplifiedSRPServer(SRPServer):
+    def __init__(self, config=SRP_config):
+        super(SimplifiedSRPServer, self).__init__()
+
+    def salt_pub_and_random(self):
+        self._generate_keypair()
+        self.u = randint(0, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+        return self.salt, self.pub, self.u
+
+    def generate_K(self, other_pub):
+        self.other_pub = other_pub
+        S = modexp(self.other_pub * modexp(self.v, self.u, self.N), self.prv, self.N)
+        self.K = sha256(S.to_bytes(int(S.bit_length()/4)+1, 'big'))
+
+    def check_HMAC(self, HMAC):
+        salt_bytes = self.salt.to_bytes(int(self.salt.bit_length() / 4) + 1, 'big')
+        return HMAC == hmac(sha256, self.K, salt_bytes, 32)
+
+
+def challenge38_protocol():
+    client = SimplifiedSRPClient()
+    server = SimplifiedSRPServer()
+
+    email, c_pub = client.email_and_pub()
+    salt, s_pub, u = server.salt_pub_and_random()
+    # Mal server returns salt, s_pub, u
+    mal_salt = 0
+    mal_s_pub = server.g
+    mal_u = 1
+
+    client.generate_K(mal_salt, mal_s_pub, mal_u)
+    server.generate_K(c_pub)
+
+    c_hmac = client.get_HMAC()
+    with open('/usr/share/dict/words') as f:
+        for w in f:
+            p = w.rstrip()
+            p = bytes(p, 'utf-8')
+            xH = sha256(b'\x00' + p)
+            x = int.from_bytes(xH, byteorder='big')
+            S = c_pub * modexp(server.g, x, server.N) % server.N
+            K = sha256(S.to_bytes(int(S.bit_length() / 4) + 1, 'big'))
+            h_K = hmac(sha256, K, b'\x00', 32)
+            if c_hmac == h_K:
+                return p
+        i += 1
+
+    return server.check_HMAC(hmac)

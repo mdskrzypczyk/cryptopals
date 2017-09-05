@@ -21,13 +21,10 @@ def challenge35():
     clientB = DiffieHellmanClient(name="Bob")
     challenge35_protocol(clientA, clientB, wire={})
     dh_group = {'p': 37, 'g': 1}
-    print(dh_group) 
     challenge35_protocol(clientA, clientB, wire=mitm_dh_wire(dh_group))
     dh_group['g'] = dh_group['p']
-    print(dh_group)
     challenge35_protocol(clientA, clientB, wire=mitm_dh_wire(dh_group))
     dh_group['g'] = dh_group['p'] - 1
-    print(dh_group)
     challenge35_protocol(clientA, clientB, wire=mitm_dh_wire(dh_group))
 
 from cipher_tools.protocols import challenge36_protocol

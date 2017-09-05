@@ -1,4 +1,5 @@
 import struct
+import hashlib
 from cipher_tools.data_manipulation import breakup_data, left_rotate
 from cipher_tools.padding import mdpad
 
@@ -41,6 +42,11 @@ def sha1(message, message_len=None, h0=0x67452301, h1=0xEFCDAB89, h2=0x98BADCFE,
 
     hh = b''.join([h.to_bytes(4, 'big') for h in [h0, h1, h2, h3, h4]])
     return hh
+
+def sha256(message):
+    h = hashlib.sha256()
+    h.update(message)
+    return h.digest()
 
 def md4_f(x, y, z): return (x & y) | (~x & z)
 def md4_g(x, y, z): return (x & y) | (x & z) | (y & z)

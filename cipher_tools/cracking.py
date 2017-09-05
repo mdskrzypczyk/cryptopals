@@ -3,6 +3,7 @@ import operator
 import time
 import struct
 import requests
+import string
 from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
