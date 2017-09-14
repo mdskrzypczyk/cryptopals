@@ -1,5 +1,6 @@
 from Crypto.Cipher import AES
 from cipher_tools.rng import mersenne_twister_rng
+from cipher_tools.mathlib import modexp
 from cipher_tools.padding import remove_pkcs7pad
 from cipher_tools.data_manipulation import breakup_data
 
@@ -63,3 +64,8 @@ def decrypt_mersenne(seed, cipher, config):
 		data += bytes([k ^ c for k, c in zip(key_bytes, cipher_chunk)])
 
 	return data
+
+def decrypt_rsa(c, d, n):
+	modulus_len = n.bit_length() // 8 + 1
+	m = modexp(int.from_bytes(c, 'big'), d, n)
+	return m.to_bytes(m.bit_length() // 8 + 1, 'big')

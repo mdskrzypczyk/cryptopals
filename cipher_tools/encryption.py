@@ -1,6 +1,7 @@
 from Crypto.Cipher import AES
 from cipher_tools.rng import mersenne_twister_rng
 from cipher_tools.padding import pkcs7pad
+from cipher_tools.mathlib import modexp
 from cipher_tools.data_manipulation import breakup_data
 
 def encrypt_ecb(iv, key, data, pad):
@@ -56,3 +57,8 @@ def encrypt_mersenne(seed, data, config):
 		cipher += bytes([k ^ d for k, d in zip(key_bytes, data_chunk)])
 
 	return cipher
+
+def encrypt_rsa(m, e, n):
+	modulus_len = n.bit_length() // 8 + 1
+	c = modexp(int.from_bytes(m, 'big'), e, n)
+	return c.to_bytes(c.bit_length() // 8 + 1, 'big')

@@ -42,11 +42,26 @@ def challenge37():
     except:
         print("Failed to start server/client threads")
 
+from cipher_tools.protocols import challenge38_protocol
 def challenge38():
-    pass
+    return challenge38_protocol()
 
+from cipher_tools.mathlib import gen_rsa_keys
+from cipher_tools.encryption import encrypt_rsa
+from cipher_tools.decryption import decrypt_rsa
 def challenge39():
-    pass
+    while True:
+        try:
+            pub, priv = gen_rsa_keys()
+            break
+        except:
+            pass
+
+    message = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abc"
+    if int.from_bytes(message, 'big') > pub[1]:
+        print("Message too large")
+    cipher = encrypt_rsa(message, pub[0], pub[1])
+    return message == decrypt_rsa(cipher, priv[0], priv[1])
 
 def challenge40():
     pass

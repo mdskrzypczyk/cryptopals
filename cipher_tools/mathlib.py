@@ -1,4 +1,5 @@
-from random import randint
+from Crypto.Util import number
+from random import randint, randrange
 
 english_freq = [
     0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015,  # A-G
@@ -69,3 +70,61 @@ def diffie_hellman(p, B, a):
     # Calculate shared secret
     s = modexp(B, a, p)
     return s
+
+def miller_rabin_factor(n):
+    # Find r, d s.t. n - 1 == (2**r)(d) with d odd
+    r, d = 0, n - 1
+    while d & 0x01:
+        d >>= 1
+        r += 1
+    return r, d
+
+def miller_rabin_witness_loop(n, r, d, t):
+    for i in range(t):
+        a = randrange(2, n - 1)
+        x = modexp(a, d, n)
+
+        if x == 1 or x == n - 1:
+            continue
+
+        if miller_rabin_trial(x, n, r):
+            continue
+
+        return False
+
+    return True
+
+def miller_rabin_trial(x, n, r):
+    for i in range(r - 1):
+        x = modexp(x, 2, n)
+        if x == 1:
+            return False
+        if x == n - 1:
+            return True
+    return False
+
+def miller_rabin(n, t=64):
+    r, d = miller_rabin_factor(n)
+    return miller_rabin_witness_loop(n, r, d, t)
+
+def egcd(a, b):
+    if a == 0:
+        return (b, 0, 1)
+    else:
+        g, y, x = egcd(b % a, a)
+        return (g, x - (b // a) * y, y)
+
+def modinv(a, m):
+    g, x, y = egcd(a, m)
+    if g != 1:
+        raise Exception('modular inverse does not exist')
+    else:
+        return x % m
+
+def gen_rsa_keys():
+    p, q = number.getPrime(512), number.getPrime(512)
+    n = p * q
+    et = ((p - 1) * (q - 1)) % n
+    e = 3
+    d = modinv(e, et)
+    return ((e, n), (d,n))
