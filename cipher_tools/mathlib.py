@@ -71,42 +71,6 @@ def diffie_hellman(p, B, a):
     s = modexp(B, a, p)
     return s
 
-def miller_rabin_factor(n):
-    # Find r, d s.t. n - 1 == (2**r)(d) with d odd
-    r, d = 0, n - 1
-    while d & 0x01:
-        d >>= 1
-        r += 1
-    return r, d
-
-def miller_rabin_witness_loop(n, r, d, t):
-    for i in range(t):
-        a = randrange(2, n - 1)
-        x = modexp(a, d, n)
-
-        if x == 1 or x == n - 1:
-            continue
-
-        if miller_rabin_trial(x, n, r):
-            continue
-
-        return False
-
-    return True
-
-def miller_rabin_trial(x, n, r):
-    for i in range(r - 1):
-        x = modexp(x, 2, n)
-        if x == 1:
-            return False
-        if x == n - 1:
-            return True
-    return False
-
-def miller_rabin(n, t=64):
-    r, d = miller_rabin_factor(n)
-    return miller_rabin_witness_loop(n, r, d, t)
-
 def egcd(a, b):
     if a == 0:
         return (b, 0, 1)
@@ -128,3 +92,22 @@ def gen_rsa_keys():
     e = 3
     d = modinv(e, et)
     return ((e, n), (d,n))
+
+def find_cube_root(n):
+    lo = 0
+    hi = n
+    while lo < hi:
+        mid = (lo+hi)//2
+        if mid**3 < n:
+            lo = mid+1
+        else:
+            hi = mid
+    return lo
+
+def three_residue_crt(c0, n0, c1, n1, c2, n2):
+    ms0 = n1 * n2
+    ms1 = n0 * n2
+    ms2 = n0 * n1
+    res = ((c0 * ms0 * modinv(ms0, n0)) + (c1 * ms1 * modinv(ms1, n1)) + (c2 * ms2 * modinv(ms2, n2)))
+    res = res % (n0 * n1 * n2)
+    return find_cube_root(res)

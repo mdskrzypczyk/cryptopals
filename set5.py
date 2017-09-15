@@ -63,5 +63,25 @@ def challenge39():
     cipher = encrypt_rsa(message, pub[0], pub[1])
     return message == decrypt_rsa(cipher, priv[0], priv[1])
 
+from cipher_tools.cracking import crack_challenge40
 def challenge40():
-    pass
+    message = b"Secretsecretsecret"
+
+    keys = []
+    while True:
+        try:
+            k = gen_rsa_keys()
+            keys.append(k)
+            if len(keys) == 3:
+                break
+        except:
+            pass
+
+    ciphers = []
+    pub_keys = []
+    for k in keys:
+        pub = k[0]
+        ciphers.append(encrypt_rsa(message, pub[0], pub[1]))
+        pub_keys.append(pub)
+    return crack_challenge40(ciphers, pub_keys)
+

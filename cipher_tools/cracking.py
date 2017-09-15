@@ -653,3 +653,14 @@ def follow_lead(curr_sig=b'', timeout=0.0):
 
 def crack_challenge31_oracle_reduced_delay():
     return follow_lead()
+
+
+def crack_challenge40(rsa_ciphers, pub_keys):
+    c0 = int.from_bytes(rsa_ciphers[0], 'big')
+    c1 = int.from_bytes(rsa_ciphers[1], 'big')
+    c2 = int.from_bytes(rsa_ciphers[2], 'big')
+    n0 = pub_keys[0][1]
+    n1 = pub_keys[1][1]
+    n2 = pub_keys[2][1]
+    m = three_residue_crt(c0, n0, c1, n1, c2, n2)
+    return m.to_bytes(m.bit_length() // 8 + 1, 'big')
