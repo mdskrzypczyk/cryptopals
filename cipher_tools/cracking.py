@@ -3,7 +3,8 @@ import operator
 import time
 import struct
 import requests
-import string
+from urllib.parse import quote
+import base64
 from random import randint
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
@@ -664,3 +665,32 @@ def crack_challenge40(rsa_ciphers, pub_keys):
     n2 = pub_keys[2][1]
     m = three_residue_crt(c0, n0, c1, n1, c2, n2)
     return m.to_bytes(m.bit_length() // 8 + 1, 'big')
+
+
+def crack_challenge41():
+    # Get original cipher + public keys
+    host = 'http://127.0.0.1'
+    port = 5000
+    endpoint = 'challenge41/get_message_and_pub'
+    response = requests.get("{}:{}/{}".format(host, port, endpoint))
+    cipher = base64.b64decode(response.json()['cipher'])
+    pub = response.json()['keys']
+
+    # Craft C'
+    c = int.from_bytes(cipher, 'big')
+    s = 2
+    crafted = (modexp(s, pub[0], pub[1]) * c) % pub[1]
+    crafted_cipher = crafted.to_bytes(crafted.bit_length() // 8 + 1, 'big')
+
+    # Submit C' to be decrypted
+    endpoint = 'challenge41/'
+    response = requests.post("{}:{}/{}".format(host, port, endpoint), json={'cipher': str(base64.b64encode(crafted_cipher), 'utf-8')})
+
+    # Multiply by S inverse to recover original plain
+    crafted_plain = base64.b64decode(response.json()['data'])
+    p = int.from_bytes(crafted_plain, 'big')
+    plain = (p * modinv(s, pub[1])) % pub[1]
+
+    return plain.to_bytes(plain.bit_length() // 8 + 1, 'big')
+
+
