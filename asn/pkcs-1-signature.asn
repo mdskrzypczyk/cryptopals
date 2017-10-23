@@ -1,0 +1,9 @@
+PKCS-15-SIGNATURE {iso(1) member(2) us(840) rsadsi(113549) digestAlgorithm(2)}
+DEFINITIONS EXPLICIT TAGS ::= BEGIN
+    DigestInfo ::= SEQUENCE {
+        digestAlgorithm DigestAlgorithmIdentifier,
+        digest Digest
+    }
+    DigestAlgorithmIdentifier ::= AlgorithmIdentifier
+    Digest ::= OCTET STRING
+END

@@ -1,10 +1,11 @@
 import socket
-import string
+from pyasn1.codec.native.encoder import encode
+from pyasn1.codec.ber import decoder as ber_decoder
 from random import randint
-from itertools import product
-from cipher_tools.encryption import encrypt_cbc
+from asn.pkcs_15_signature import DigestInfo, Digest, DigestAlgorithmIdentifier
+from cipher_tools.encryption import encrypt_cbc, encrypt_rsa
 from cipher_tools.decryption import decrypt_cbc
-from cipher_tools.hashing import sha1, sha256
+from cipher_tools.hashing import sha1, sha256, md4
 from cipher_tools.mac import hmac
 from cipher_tools.mathlib import diffie_hellman, generate_dh_keypair, modexp
 
@@ -324,3 +325,45 @@ def challenge38_protocol():
         i += 1
 
     return server.check_HMAC(hmac)
+
+def pkcs15sigverify(message, signature, public_key):
+    # "Encrypt" the data with public key to get the signed data
+    data = b'\x00' + encrypt_rsa(signature, public_key[0], public_key[1])
+
+    # Verify the initial 00 01 ff
+    if data[0:3] != b'\x00\x01\xff':
+        return False
+
+    # Search for where the ASN.1 data starts, assume octet 4 could be 00
+    right_start = 4
+    for i, b in enumerate(data[3:]):
+        if b == 0xFF:
+            continue
+        elif b == 0x00:
+            right_start += i
+            break
+        else:
+            return False
+
+    # Obtain the ASN.1 and HASH data
+    right_justified_segment = data[right_start:]
+
+    # Get the ASN.1 information
+    digest_info = encode(ber_decoder.decode(right_justified_segment, asn1Spec=DigestInfo())[0])
+    try:
+        if digest_info['digestAlgorithm']['algorithm'] != '1.2.840.113549.1.1.4':
+            return False
+    except:
+        return False
+
+    # Compute HASH
+    computed_hash = md4(message)
+
+    # Verify the HASH
+    message_digest = digest_info['digest']
+    for b1, b2 in zip(computed_hash, message_digest):
+        if b1 != b2:
+            return False
+
+    return True
+

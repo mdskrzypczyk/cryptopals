@@ -3,9 +3,11 @@ import operator
 import time
 import struct
 import requests
-from urllib.parse import quote
 import base64
+from pyasn1.codec.ber import encoder as ber_encoder
+from pyasn1.type import univ
 from random import randint
+from asn.pkcs_15_signature import *
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
@@ -693,4 +695,32 @@ def crack_challenge41():
 
     return plain.to_bytes(plain.bit_length() // 8 + 1, 'big')
 
+def crack_challenge42(message):
+    digest = Digest(md4(message))
+
+    digest_algorithm = DigestAlgorithmIdentifier()
+    digest_algorithm.setComponentByName('algorithm', univ.ObjectIdentifier('1.2.840.113549.1.1.4'))
+
+    digest_info = DigestInfo()
+    digest_info.setComponentByName('digest', digest)
+    digest_info.setComponentByName('digestAlgorithm', digest_algorithm)
+
+    byte_digest_info = ber_encoder.encode(digest_info)
+    plain = b'\x00\x01\xff\x00' + byte_digest_info
+    garbage = b'\x00'*(128-len(plain))
+    mal = plain + garbage
+    mal_int = int.from_bytes(mal, 'big')
+    pub_key = (3, int.from_bytes(b'\xff'*128, 'big'))
+
+    root = find_cube_root(mal_int)
+    if modexp(root, pub_key[0], pub_key[1]) != mal_int:
+        hi = modexp(root+1, pub_key[0], pub_key[1])
+        diff = hi - mal_int
+        if diff > int.from_bytes(b'\xff'*len(garbage), 'big'):
+            raise Exception("Broken")
+        mal_sig = (root+1).to_bytes(128, 'big')
+    else:
+        mal_sig = lo.to_bytes(128, 'big')
+
+    return (mal_sig, pub_key)
 
