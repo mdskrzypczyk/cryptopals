@@ -7,6 +7,7 @@ import base64
 from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
 from random import randint
+from itertools import combinations
 from asn.pkcs_15_signature import *
 from cipher_tools.dsa import *
 from cipher_tools.mathlib import *
@@ -733,3 +734,20 @@ def crack_challenge43(message, signature, params):
         private_key = (modinv(r, q) * ((s * k) - h)) % q
         if dsa_calculate_signature(k, h, private_key, params) == signature:
             return private_key
+
+def crack_challenge44(challenge_data, params):
+    q = params['q']
+    for msg_data1, msg_data2 in combinations(challenge_data, 2):
+        m1, m2 = msg_data1['m'], msg_data2['m']
+        s1, s2 = msg_data1['s'], msg_data2['s']
+        r1, r2 = msg_data1['r'], msg_data2['r']
+        m_diff, s_diff = (m1 - m2) % q, (s1 - s2) % q
+        k = (modinv(s_diff, q) * m_diff) % q
+
+        priv_key1 = (modinv(r1, q) * ((s1 * k) - m1)) % q
+        priv_key2 = (modinv(r2, q) * ((s2 * k) - m2)) % q
+
+        if k > 1 and priv_key1 == priv_key2:
+            if dsa_calculate_signature(k, m1, priv_key1, params) == (r1, s1) and \
+                dsa_calculate_signature(k, m2, priv_key1, params) == (r2, s2):
+                return priv_key1

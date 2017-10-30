@@ -1,5 +1,12 @@
 from base64 import b64encode, b64decode
 from string import ascii_lowercase, ascii_uppercase
+from itertools import zip_longest
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
 def left_rotate(num, bit_size, amount):
 	num = num & int('1'*bit_size, 2)
