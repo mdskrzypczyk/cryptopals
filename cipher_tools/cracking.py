@@ -8,6 +8,7 @@ from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
 from random import randint
 from asn.pkcs_15_signature import *
+from cipher_tools.dsa import *
 from cipher_tools.mathlib import *
 from cipher_tools.data_manipulation import *
 from cipher_tools.decryption import *
@@ -724,3 +725,11 @@ def crack_challenge42(message):
 
     return (mal_sig, pub_key)
 
+def crack_challenge43(message, signature, params):
+    q = params['q']
+    h = int.from_bytes(sha1(message), 'big')
+    r,s = signature
+    for k in range(2, 2**16):
+        private_key = (modinv(r, q) * ((s * k) - h)) % q
+        if dsa_calculate_signature(k, h, private_key, params) == signature:
+            return private_key
