@@ -751,3 +751,11 @@ def crack_challenge44(challenge_data, params):
             if dsa_calculate_signature(k, m1, priv_key1, params) == (r1, s1) and \
                 dsa_calculate_signature(k, m2, priv_key1, params) == (r2, s2):
                 return priv_key1
+
+def generate_magic_signature(pub_key, params):
+    z = 2
+    p = params['p']
+    q = params['q']
+    r = ((pub_key ** z) % p) % q
+    s = (modinv(z, q) * r) % q
+    return (r, s)

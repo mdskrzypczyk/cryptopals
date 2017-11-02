@@ -26,7 +26,6 @@ dsa_params = {
 }
 from cipher_tools.cracking import crack_challenge43
 def challenge43():
-
     message = b'For those that envy a MC it can be hazardous to your health\n' \
               b'So be friendly, a matter of life and death, just like a etch-a-sketch\n'
     signature = (548099063082341131477253921760299949438196259240, 857042759984254168557880549501802188789837994940)
@@ -48,8 +47,25 @@ def challenge44():
         challenge_data.append(msg_data)
     return crack_challenge44(challenge_data, dsa_params)
 
+from random import randint
+from cipher_tools.hashing import sha1
+from cipher_tools.mathlib import gen_rsa_keys, modexp
+from cipher_tools.dsa import dsa_sign, dsa_sig_verify
+from cipher_tools.cracking import generate_magic_signature
 def challenge45():
-    pass
+    tampered_params = dict(dsa_params)
+    tampered_params['g'] = 0
+    pub_key = randint(1, tampered_params['q'] - 1)
+    priv_key = modexp(tampered_params['g'], pub_key, tampered_params['p'])
+    msg1, msg2 = 2, b'Hello, world', b'Goodbye, world'
+    # dsa implementation causes r = 0 signatures to be invalid
+    # sig = dsa_sign(msg1, priv_key, tampered_params, sha1)
+    # dsa_sig_verify(msg1, sig, pub_key, tampered_params, sha1)
+    tampered_params['g'] = tampered_params['p'] + 1
+    signature = generate_magic_signature(pub_key, tampered_params)
+    return [(msg1, signature, dsa_sig_verify(msg1, signature, pub_key, tampered_params, sha1)),
+            (msg2, signature, dsa_sig_verify(msg2, signature, pub_key, tampered_params, sha1))]
+
 
 def challenge46():
     pass
