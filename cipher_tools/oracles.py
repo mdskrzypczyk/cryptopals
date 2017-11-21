@@ -1,11 +1,13 @@
 import time
+import base64
 from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
-from cipher_tools.encryption import encrypt_ecb, encrypt_cbc, encrypt_ctr, encrypt_mersenne
-from cipher_tools.decryption import decrypt_ecb, decrypt_cbc, decrypt_ctr
+from cipher_tools.mathlib import gen_rsa_keys
+from cipher_tools.encryption import encrypt_ecb, encrypt_cbc, encrypt_ctr, encrypt_mersenne, encrypt_rsa
+from cipher_tools.decryption import decrypt_ecb, decrypt_cbc, decrypt_ctr, decrypt_rsa
 
 def challenge11_oracle(data):
 	block_size = 16
@@ -133,3 +135,9 @@ def challenge27_check_answer(cipher):
 		raise Exception_challenge27(data=data)
 	return b';admin=true' in data
 
+challenge46_pub, challenge46_priv = gen_rsa_keys()
+challenge46_cipher = encrypt_rsa(base64.b64decode(open('challenge_data/46.txt').read()),
+								 challenge46_pub[0], challenge46_pub[1])
+def challenge46_oracle(cipher):
+	data = decrypt_rsa(cipher, challenge46_priv[0], challenge46_priv[1])
+	return (int.from_bytes(data, 'big') & 0x1)

@@ -66,9 +66,11 @@ def challenge45():
     return [(msg1, signature, dsa_sig_verify(msg1, signature, pub_key, tampered_params, sha1)),
             (msg2, signature, dsa_sig_verify(msg2, signature, pub_key, tampered_params, sha1))]
 
-
+from cipher_tools.cracking import crack_challenge46
+from cipher_tools.oracles import challenge46_oracle, challenge46_cipher, challenge46_pub
 def challenge46():
-    pass
+    return crack_challenge46(challenge46_cipher, challenge46_pub, challenge46_oracle)
+
 
 def challenge47():
     pass

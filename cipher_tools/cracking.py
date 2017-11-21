@@ -4,6 +4,8 @@ import time
 import struct
 import requests
 import base64
+from decimal import getcontext
+from math import ceil, log
 from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
 from random import randint
@@ -759,3 +761,25 @@ def generate_magic_signature(pub_key, params):
     r = ((pub_key ** z) % p) % q
     s = (modinv(z, q) * r) % q
     return (r, s)
+
+def crack_challenge46(cipher, pub_key, oracle):
+    e, n = pub_key
+    lo, hi = 0, n - 1
+    factor = 2
+    while hi != lo + 1:
+        cipher_int = int.from_bytes(cipher, 'big')
+        cipher_double = (cipher_int) * modexp(factor, e, n) % n
+        new_cipher = cipher_double.to_bytes((cipher_double.bit_length() // 8) + 1, 'big')
+
+        if oracle(new_cipher):
+            lo += (hi - lo) // 2
+        else:
+            hi -= (hi - lo) // 2
+
+        factor *= 2
+
+    for s in range(-256, 256):
+        if modexp(hi+s, e, n) == cipher_int:
+            return (hi+s).to_bytes(((hi+s).bit_length() // 8) + 1, 'big')
+
+    raise Exception("Failed to decrypt")

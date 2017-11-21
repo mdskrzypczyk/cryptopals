@@ -86,12 +86,16 @@ def modinv(a, m):
         return x % m
 
 def gen_rsa_keys():
-    p, q = number.getPrime(512), number.getPrime(512)
-    n = p * q
-    et = ((p - 1) * (q - 1)) % n
-    e = 3
-    d = modinv(e, et)
-    return ((e, n), (d,n))
+    while True:
+        try:
+            p, q = number.getPrime(512), number.getPrime(512)
+            n = p * q
+            et = ((p - 1) * (q - 1)) % n
+            e = 3
+            d = modinv(e, et)
+            return ((e, n), (d,n))
+        except:
+            pass
 
 def find_cube_root(n):
     lo = 0
