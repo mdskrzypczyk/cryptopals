@@ -149,3 +149,11 @@ def challenge47_oracle(cipher):
 	if len(data) == 31:
 		data = b'\x00' + data
 	return data[0] == 0 and data[1] == 2
+
+challenge48_pub, challenge48_priv = gen_rsa_keys(768)
+challenge48_cipher = encrypt_rsa(pkcs1v15pad(b"kick it, CC", 768), challenge48_pub[0], challenge48_pub[1])
+def challenge48_oracle(cipher):
+	data = decrypt_rsa(cipher, challenge48_priv[0], challenge48_priv[1])
+	if len(data) == 95:
+		data = b'\x00' + data
+	return data[0] == 0 and data[1] == 2

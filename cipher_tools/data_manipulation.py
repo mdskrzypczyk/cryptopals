@@ -2,6 +2,9 @@ from base64 import b64encode, b64decode
 from string import ascii_lowercase, ascii_uppercase
 from itertools import zip_longest
 
+def int_to_bytes(i):
+    return i.to_bytes(i.bit_length() // 8 + 1, 'big')
+
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"

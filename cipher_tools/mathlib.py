@@ -52,6 +52,18 @@ def hamming_distance(string1, string2):
         distance += bin_diff.count('1')
     return distance
 
+def ceildiv(a, b):
+    """
+    http://stackoverflow.com/a/17511341
+    """
+    return -(-a // b)
+
+def floordiv(a, b):
+    """
+    http://stackoverflow.com/a/17511341
+    """
+    return a // b
+
 def modexp(g, u, p):
     s = 1
     while u != 0:

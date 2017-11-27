@@ -783,21 +783,6 @@ def crack_challenge46(cipher, pub_key, oracle):
 
     raise Exception("Failed to decrypt")
 
-def int_to_bytes(i):
-    return i.to_bytes(i.bit_length() // 8 + 1, 'big')
-
-def ceildiv(a, b):
-    """
-    http://stackoverflow.com/a/17511341
-    """
-    return -(-a // b)
-
-def floordiv(a, b):
-    """
-    http://stackoverflow.com/a/17511341
-    """
-    return a // b
-
 def crack_challenge47_step1(c, e, n, oracle):
     s = 1
     c_0 = c * modexp(s, e, n)
@@ -871,7 +856,7 @@ def crack_challenge47(cipher, pub_key, oracle):
             s.append(crack_challenge47_step2c(c_0, e, n, b, lo, hi, s[i-1], oracle))
 
         m.append(crack_challenge47_step3(m[i-1], s[i], n, b))
-
+        print(m)
         if len(m[i]) == 1 and m[i][0][0] == m[i][0][1]:
             message = (m[i][0][0] * modinv(s_0, n)) % n
             return b'\x00' + int_to_bytes(message)
