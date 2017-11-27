@@ -4,8 +4,7 @@ import time
 import struct
 import requests
 import base64
-from decimal import getcontext
-from math import ceil, log
+from math import ceil, floor
 from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
 from random import randint
@@ -783,3 +782,99 @@ def crack_challenge46(cipher, pub_key, oracle):
             return (hi+s).to_bytes(((hi+s).bit_length() // 8) + 1, 'big')
 
     raise Exception("Failed to decrypt")
+
+def int_to_bytes(i):
+    return i.to_bytes(i.bit_length() // 8 + 1, 'big')
+
+def ceildiv(a, b):
+    """
+    http://stackoverflow.com/a/17511341
+    """
+    return -(-a // b)
+
+def floordiv(a, b):
+    """
+    http://stackoverflow.com/a/17511341
+    """
+    return a // b
+
+def crack_challenge47_step1(c, e, n, oracle):
+    s = 1
+    c_0 = c * modexp(s, e, n)
+    while not oracle(int_to_bytes(c_0)):
+        s += 1
+        c_0 = c * modexp(s, e, n)
+    return s, c_0
+
+def crack_challenge47_step2a(c_0, e, n, b, oracle):
+    s = ceildiv(n, (3*b))
+    c = c_0 * modexp(s, e, n)
+    while not oracle(int_to_bytes(c)):
+        s += 1
+        c = c_0 * modexp(s, e, n)
+    return s
+
+def crack_challenge47_step2b(c_0, s, e, n, oracle):
+    i = 1
+    c = c_0 * modexp(s+i, e, n)
+    while not oracle(int_to_bytes(c)):
+        i += 1
+        c = c_0 * modexp(s+i, e, n)
+    return s+i
+
+def crack_challenge47_step2c(c_0, e, n, b, lo, hi, s, oracle):
+    r = ceildiv(2 * (hi * s - 2 * b), n)
+    while True:
+        lower = ceildiv(2*b + r*n, hi)
+        upper = floordiv(3*b + r*n, lo) + 1
+        for s_i in range(lower, upper):
+            c = c_0*modexp(s_i, e, n)
+            if oracle(int_to_bytes(c)):
+                return s_i
+        r += 1
+
+def crack_challenge47_step3(m, s, n, b):
+    m_i = []
+    for lo, hi in m:
+        lower = ceildiv(lo*s - 3*b + 1, n)
+        upper = floordiv(hi*s - 2*b, n) + 1
+        for r in range(lower, upper):
+            new_lo = max(lo, ceildiv(2*b + r*n, s))
+            new_hi = min(hi, floordiv(3*b - 1 + r*n, s))
+            if new_lo <= new_hi:
+                m_i.append((new_lo, new_hi))
+
+    return m_i
+
+
+def crack_challenge47(cipher, pub_key, oracle):
+    cipher_int = int.from_bytes(cipher, 'big')
+    e, n = pub_key
+    k = ceil(n.bit_length() / 8)
+    b = 2**(8*(k-2))
+
+    # Step 1, blinding
+    s_0, c_0 = crack_challenge47_step1(cipher_int, e, n, oracle)
+    m = [[(2*b, (3*b)-1)]]
+
+    i = 1
+    s = [s_0]
+    while True:
+        if i == 1:
+            s.append(crack_challenge47_step2a(c_0, e, n, b, oracle))
+
+        elif len(m[i-1]) > 1 and i > 1:
+            s.append(crack_challenge47_step2b(c_0, s[i-1], e, n, oracle))
+
+        elif len(m[i-1]) == 1:
+            lo, hi = m[i-1][0]
+            s.append(crack_challenge47_step2c(c_0, e, n, b, lo, hi, s[i-1], oracle))
+
+        m.append(crack_challenge47_step3(m[i-1], s[i], n, b))
+
+        if len(m[i]) == 1 and m[i][0][0] == m[i][0][1]:
+            message = (m[i][0][0] * modinv(s_0, n)) % n
+            return b'\x00' + int_to_bytes(message)
+
+        else:
+            i += 1

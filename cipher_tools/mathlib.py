@@ -85,10 +85,10 @@ def modinv(a, m):
     else:
         return x % m
 
-def gen_rsa_keys():
+def gen_rsa_keys(bitlength=1024):
     while True:
         try:
-            p, q = number.getPrime(512), number.getPrime(512)
+            p, q = number.getPrime(bitlength // 2), number.getPrime(bitlength // 2)
             n = p * q
             et = ((p - 1) * (q - 1)) % n
             e = 3

@@ -71,9 +71,10 @@ from cipher_tools.oracles import challenge46_oracle, challenge46_cipher, challen
 def challenge46():
     return crack_challenge46(challenge46_cipher, challenge46_pub, challenge46_oracle)
 
-
+from cipher_tools.oracles import challenge47_cipher, challenge47_pub, challenge47_oracle
+from cipher_tools.cracking import crack_challenge47
 def challenge47():
-    pass
+    return crack_challenge47(challenge47_cipher, challenge47_pub, challenge47_oracle)
 
 def challenge48():
     pass

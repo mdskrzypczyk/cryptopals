@@ -1,5 +1,5 @@
 import struct
-from cipher_tools.data_manipulation import breakup_data
+from random import randint
 
 def pkcs7pad(data, padded_modulo):
 	len_pad = padded_modulo - (len(data) % padded_modulo)
@@ -32,3 +32,11 @@ def mdpad_verify(message):
 	num_bytes = int(ml/8)
 	pad_len = -num_bytes % 64
 	return message[-pad_len:] == b"\x80" + b"\x00"*(pad_len-9) + message[-8:]
+
+def pkcs1v15pad(data, length):
+	ps_length = (length // 8) - 3 - len(data)
+	if ps_length < 8:
+		raise Exception("Data block too long to encrypt to this length")
+	ps = bytes([randint(1,255) for i in range(ps_length)])
+	padded = b'\x00\x02' + ps + b'\x00' + data
+	return padded

@@ -141,3 +141,11 @@ challenge46_cipher = encrypt_rsa(base64.b64decode(open('challenge_data/46.txt').
 def challenge46_oracle(cipher):
 	data = decrypt_rsa(cipher, challenge46_priv[0], challenge46_priv[1])
 	return (int.from_bytes(data, 'big') & 0x1)
+
+challenge47_pub, challenge47_priv = gen_rsa_keys(256)
+challenge47_cipher = encrypt_rsa(pkcs1v15pad(b"kick it, CC", 256), challenge47_pub[0], challenge47_pub[1])
+def challenge47_oracle(cipher):
+	data = decrypt_rsa(cipher, challenge47_priv[0], challenge47_priv[1])
+	if len(data) == 31:
+		data = b'\x00' + data
+	return data[0] == 0 and data[1] == 2
