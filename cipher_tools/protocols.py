@@ -6,7 +6,7 @@ from asn.pkcs_15_signature import DigestInfo, Digest, DigestAlgorithmIdentifier
 from cipher_tools.encryption import encrypt_cbc, encrypt_rsa
 from cipher_tools.decryption import decrypt_cbc
 from cipher_tools.hashing import sha1, sha256, md4
-from cipher_tools.mac import hmac
+from cipher_tools.mac import hmac, cbc_mac
 from cipher_tools.mathlib import diffie_hellman, generate_dh_keypair, modexp
 
 class DiffieHellmanClient:
@@ -140,7 +140,7 @@ class SRPClient(DiffieHellmanClient):
         my_byte_pub = self.pub.to_bytes(int(self.pub.bit_length()/4) + 1, 'big')
         other_byte_pub = other_pub.to_bytes(int(other_pub.bit_length()/4) + 1, 'big')
         uH = sha256(my_byte_pub + other_byte_pub)
-        self.u = int.from_bytes(uH, byteorder = 'big') 
+        self.u = int.from_bytes(uH, byteorder = 'big')
 
     def generate_K(self, salt):
         self.salt = salt
@@ -367,3 +367,106 @@ def pkcs15sigverify(message, signature, public_key):
 
     return True
 
+class Challenge49ServerA:
+    def __init__(self):
+        self.ids_to_balances = {}
+        self.keys = {}
+        self.last_request = None
+
+    def recv_request(self, client, request):
+        message = request['message']
+        iv = request['iv']
+        key = self.keys[client.client_id]
+        mac = request['mac']
+
+        if self.check_mac(iv, key, message, mac):
+            transaction = self.parse_message(str(message, 'utf-8'))
+            self.process_transaction(transaction)
+            self.last_request = request
+        else:
+            raise Exception("Invalid Request!")
+
+    def parse_message(self, message):
+        transaction = {}
+        for field in message.split('&'):
+            key, value = field.split('=#')
+            transaction[key] = int(value)
+        return (transaction['from'], transaction['to'], transaction['amount'])
+
+    def check_mac(self, iv, key, message, mac):
+        gen_mac = cbc_mac(message, key, iv)
+        return gen_mac == mac
+
+    def process_transaction(self, transaction):
+        from_id, to_id, amount = transaction
+        self.ids_to_balances[from_id] -= amount
+        self.ids_to_balances[to_id] += amount
+
+    def gen_key(self, client):
+        key = bytes([randint(0,255) for _ in range(16)])
+        self.keys[client.client_id] = key
+        return key
+
+    def eavesdrop_request(self):
+        return self.last_request
+
+    def add_account(self, client, balance):
+        self.ids_to_balances[client.client_id] = balance
+
+class Challenge49ClientA:
+    def __init__(self, server, balance):
+        self.client_id = self.get_id()
+        self.server = server
+        self.server.add_account(self, balance)
+        self.key = self.server.gen_key(self)
+        self.message_iv = 0
+
+    def get_id(self):
+        return int(str(id(self))[-10:])
+
+    def generate_request(self, to_id, amount):
+        transaction = bytes('from=#{}&to=#{}&amount=#{}'.format(self.client_id, to_id, amount), 'utf-8')
+        iv = self.message_iv.to_bytes(16, 'big')
+        mac = cbc_mac(transaction, self.key, iv)
+        request = {'message': transaction, 'iv': iv, 'mac': mac}
+        self.message_iv += 1
+        return request
+
+    def send_request(self, request):
+        return self.server.recv_request(self, request)
+
+class Challenge49ServerB(Challenge49ServerA):
+    def parse_message(self, message):
+        from_data, tx_data = message.split('&')
+        from_id = int(from_data.split('=#')[1])
+        tx_list = tx_data.split('=#')[1].split(';')
+        return (from_id, tx_list)
+
+    def recv_request(self, client, request):
+        message = request['message']
+        iv = (0).to_bytes(16, 'big')
+        key = self.keys[client.client_id]
+        mac = request['mac']
+
+        if self.check_mac(iv, key, message, mac):
+            transaction = self.parse_message(str(message, 'utf-8'))
+            self.process_transaction(transaction)
+            self.last_request = request
+        else:
+            raise Exception("Invalid Request!")
+
+    def process_transaction(self, transaction):
+        print(self.ids_to_balances)
+        sender, tx_list = transaction
+        for tx in tx_list:
+            receiver, amount = tx.split(':')
+            self.ids_to_balances[sender] -= int(amount)
+            self.ids_to_balances[int(receiver)] += int(amount)
+
+class Challenge49ClientB(Challenge49ClientA):
+    def generate_request(self, transactions):
+        tx_list = ';'.join(['{}:{}'.format(to, amount) for to, amount in transactions])
+        message = bytes('from=#{}&tx_list=#{}'.format(self.get_id(), tx_list), 'utf-8')
+        mac = cbc_mac(message, self.key, (0).to_bytes(16, 'big'))
+        request = {'message': message, 'mac': mac}
+        return request

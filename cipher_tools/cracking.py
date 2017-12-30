@@ -7,7 +7,7 @@ import base64
 from math import ceil, floor
 from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
-from random import randint
+from random import randint, getrandbits
 from itertools import combinations
 from asn.pkcs_15_signature import *
 from cipher_tools.dsa import *
@@ -863,3 +863,130 @@ def crack_challenge47(cipher, pub_key, oracle):
 
         else:
             i += 1
+
+def crack_challenge49A():
+    server = Challenge49ServerA()
+    other_client = Challenge49ClientA(server, 1000000)
+    victim_client = Challenge49ClientA(server, 2000000)
+    attacker_client = Challenge49ClientA(server, 0)
+
+    other_client.send_request(other_client.generate_request(attacker_client.client_id, 1000000))
+
+    captured_request = server.eavesdrop_request()
+    target_message = captured_request['message']
+    target_iv = captured_request['iv']
+    target_xor = bytes([i^m for i,m in zip(target_iv, target_message)])
+
+    mal_message = bytes('from=#{}&to=#{}&amount=#{}'.format(victim_client.client_id,
+                                                                  attacker_client.client_id, 1000000), 'utf-8')
+    mal_iv = bytes([x^m for x, m in zip(target_xor, mal_message)])
+    mal_request = {'message': mal_message, 'iv': mal_iv, 'mac': captured_request['mac']}
+
+    other_client.send_request(mal_request)
+    assert server.ids_to_balances[attacker_client.client_id] == 2000000
+
+def crack_challenge49B():
+    server = Challenge49ServerB()
+    other_client = Challenge49ClientB(server, 1000000)
+    victim_client = Challenge49ClientB(server, 2000000)
+    attacker_client = Challenge49ClientB(server, 0)
+
+    victim_client.send_request(victim_client.generate_request([(other_client.client_id, 10)]))
+
+    captured_request = server.eavesdrop_request()
+
+    extension = bytes(';{}:1000000'.format(attacker_client.client_id), 'utf-8')
+    mal_message = pkcs7pad(captured_request['message'], 16) + extension
+    mal_mac = cbc_mac(captured_request['mac'], attacker_client.key, mal_message)
+
+    mal_request = {'message': mal_message, 'mac': mal_mac}
+    print(mal_request)
+
+    attacker_client.send_request(mal_request)
+    assert server.ids_to_balances[attacker_client.client_id] == 1000000
+
+def crack_challenge50(java_code, desired_code):
+    iv = (0).to_bytes(16, 'big')
+    key = b'YELLOW SUBMARINE'
+
+    forged_code = desired_code + b'//'
+    space_filler = b' '*(16 - (len(forged_code) % 16))
+    forged_code += space_filler
+    current_mac = cbc_mac(iv, key, forged_code)
+    forged_code += b'\x10'*16
+    forged_code += bytes([c^j for c, j in zip(current_mac, java_code)])
+    forged_code += java_code[16:]
+    return forged_code
+
+
+def crack_challenge51_ctr(oracle):
+    valid_chars = list('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n')
+    template = "POST / HTTP/1.1\n" \
+			   "Host: hapless.com\n" \
+			   "Cookie: sessionid={}\n" \
+			   "Content-Length:"
+
+    r_bytes = str([randint(0,255) for _ in range(len(template))])
+
+    worst_compression = oracle(template.format(r_bytes), encrypt_ctr)
+    ids = [('', 1 )]
+    next_ids = []
+    while ids:
+        for prefix, compression_ratio in ids:
+            for byte in valid_chars:
+                candidate = prefix + byte
+                c_length = oracle(template.format(candidate)*10, encrypt_ctr)
+                ratio = c_length / worst_compression
+
+                if ratio < compression_ratio+0.1:
+                    if candidate[-7:] == 'Content':
+                        return candidate[:-7]
+
+                    next_ids.append((candidate, ratio))
+
+
+        ids = sorted(list(next_ids), key=lambda x: x[1])
+        if len(ids) > 50:
+            median_compression = ids[len(ids)//2][1]
+            ids = list(filter(lambda x: x[1] <= median_compression, ids))
+
+        average_compression = sum([i[1] for i in ids]) / len(ids)
+        ids = list(filter(lambda x: x[1] <= average_compression, ids))
+
+        next_ids = []
+
+    raise Exception("Unable to discover session id")
+
+
+def crack_challenge51_cbc(oracle):
+    valid_chars = list('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n')
+    template = "POST / HTTP/1.1\n" \
+			   "Host: hapless.com\n" \
+			   "Cookie: sessionid={}\n" \
+			   "Content-Length:"
+
+    r_bytes = str([randint(0,255) for _ in range(len(template))])
+
+    worst_compression = oracle(template.format(r_bytes), encrypt_ctr)
+    ids = [('', 1 )]
+    next_ids = []
+    while ids:
+        for prefix, compression_ratio in ids:
+            for byte in valid_chars:
+                candidate = prefix + byte
+                c_length = oracle(template.format(candidate*32)*10, encrypt_ctr)
+                ratio = c_length / worst_compression
+
+                if ratio < compression_ratio+0.1:
+                    if candidate[-7:] == 'Content':
+                        return candidate[:-7]
+
+                    next_ids.append((candidate, ratio))
+
+        ids = sorted(list(next_ids), key=lambda x: x[1])[:200]
+        average_compression = sum([i[1] for i in ids]) / len(ids)
+        ids = list(filter(lambda x: x[1] <= average_compression, ids))
+
+        next_ids = []
+
+    raise Exception("Unable to discover session id")

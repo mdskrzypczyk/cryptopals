@@ -3,6 +3,7 @@ import base64
 from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
+from zlib import compress
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
 from cipher_tools.mathlib import gen_rsa_keys
@@ -157,3 +158,13 @@ def challenge48_oracle(cipher):
 	if len(data) == 95:
 		data = b'\x00' + data
 	return data[0] == 0 and data[1] == 2
+
+def challenge51_oracle(p, enc_func):
+	plaintext = "POST / HTTP/1.1\n" \
+				"Host: hapless.com\n" \
+				"Cookie: sessionid=TmV2ZXIgcmV2ZWFsIHRoZSBXdS1UYW5nIFNlY3JldCE=\n" \
+				"Content-Length: {}\n" \
+				"{}".format(len(p), p)
+	iv = bytes([randint(0,255) for _ in range(16)])
+	key = bytes([randint(0,255) for _ in range(16)])
+	return len(enc_func(iv, key, compress(bytes(plaintext, 'utf-8'), level=9)))
