@@ -14,5 +14,8 @@ def challenge51():
     cbc_id = crack_challenge51_cbc(challenge51_oracle)
     return ctr_id, cbc_id
 
+from cipher_tools.cracking import crack_challenge52
+from cipher_tools.oracles import challenge52_f, challenge52_g, challenge52_oracle
 def challenge52():
-    pass
+    collisions = crack_challenge52(challenge52_oracle, challenge52_f, challenge52_g)
+    return [(collision, challenge52_oracle(collision)) for collision in collisions]

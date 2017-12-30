@@ -4,10 +4,11 @@ import time
 import struct
 import requests
 import base64
-from math import ceil, floor
+from math import ceil
 from pyasn1.codec.ber import encoder as ber_encoder
 from pyasn1.type import univ
-from random import randint, getrandbits
+from random import randint
+from collections import defaultdict
 from itertools import combinations
 from asn.pkcs_15_signature import *
 from cipher_tools.dsa import *
@@ -990,3 +991,30 @@ def crack_challenge51_cbc(oracle):
         next_ids = []
 
     raise Exception("Unable to discover session id")
+
+def gen_collisions(hash_func, m, n):
+    collisions = defaultdict(list)
+    while True:
+        msg = m.to_bytes(16, 'big')
+        hash = hash_func(m=msg)
+
+        collisions[hash].append(msg)
+        if len(collisions[hash]) == 2**n:
+            return (hash, collisions[hash])
+
+        m += 1
+
+def crack_challenge52(hash_func, f, g):
+    m=0
+    while True:
+        collisions = gen_collisions(f, m, 12)
+
+        g_collisions = defaultdict(list)
+        for collision in collisions[1]:
+            hash = g(collision)
+            g_collisions[hash].append(collision)
+
+            if len(g_collisions[hash]) == 2:
+                return g_collisions[hash]
+
+        m += 1
