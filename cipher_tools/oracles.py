@@ -4,6 +4,7 @@ from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from zlib import compress
+from functools import partial
 from cipher_tools.data_manipulation import breakup_data
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
@@ -173,11 +174,11 @@ def challenge51_oracle(p, enc_func):
 challenge52_iv = bytes(randint(0,255) for _ in range(16))
 challenge52_key = bytes(randint(0,255) for _ in range(16))
 challenge52_h = b'\x00'
-def challenge52_f(m, c=encrypt_ecb, h=challenge52_h):
+def challenge52_f(m, c=partial(encrypt_ecb, pad=False), h=challenge52_h):
 	hash = int.from_bytes(h, 'big')
 
 	for m_i in breakup_data(pkcs7pad(m, 16), 16):
-		hash += int.from_bytes(c(challenge52_iv, challenge52_key, m_i, False), 'big')
+		hash += int.from_bytes(c(challenge52_iv, challenge52_key, m_i), 'big')
 		hash %= (2**(len(h) * 8))
 
 	return hash.to_bytes(len(h), 'big')
@@ -193,3 +194,15 @@ def challenge52_g(m, c=encrypt_cbc, h=challenge52_h*3):
 
 def challenge52_oracle(m, f=challenge52_f, g=challenge52_g):
 	return f(m=m) + g(m=m)
+
+challenge53_iv = bytes(randint(0,255) for _ in range(16))
+challenge53_key = bytes(randint(0,255) for _ in range(16))
+def challenge53_hasher(m, h=b'\x00'):
+	hash = int.from_bytes(h, 'big')
+
+	for m_i in breakup_data(m, len(h)):
+		h_i = encrypt_ctr(challenge53_iv, challenge53_key, m_i)
+		hash += int.from_bytes(h_i, 'big')
+		hash %= (2 ** (len(h) * 8))
+
+	return hash.to_bytes(len(h), 'big')

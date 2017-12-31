@@ -19,3 +19,15 @@ from cipher_tools.oracles import challenge52_f, challenge52_g, challenge52_oracl
 def challenge52():
     collisions = crack_challenge52(challenge52_oracle, challenge52_f, challenge52_g)
     return [(collision, challenge52_oracle(collision)) for collision in collisions]
+
+from random import randint
+from cipher_tools.cracking import crack_challenge53
+from cipher_tools.oracles import challenge53_hasher
+def challenge53():
+    k = 5
+    block_length = 2
+    m = bytes([randint(0, 255) for _ in range(block_length * 2**k)])
+    forged_m = crack_challenge53(m, k, block_length, challenge53_hasher)
+    m_hash = challenge53_hasher(m=m, h=b'\x00' * block_length)
+    forged_m_hash = challenge53_hasher(m=forged_m, h=b'\x00' * block_length)
+    return [(m, m_hash), (forged_m, forged_m_hash)]

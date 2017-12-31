@@ -59,6 +59,5 @@ def encrypt_mersenne(seed, data, config):
 	return cipher
 
 def encrypt_rsa(m, e, n):
-	modulus_len = n.bit_length() // 8 + 1
 	c = modexp(int.from_bytes(m, 'big'), e, n)
 	return c.to_bytes(c.bit_length() // 8 + 1, 'big')

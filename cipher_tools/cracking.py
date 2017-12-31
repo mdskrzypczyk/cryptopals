@@ -1017,4 +1017,74 @@ def crack_challenge52(hash_func, f, g):
             if len(g_collisions[hash]) == 2:
                 return g_collisions[hash]
 
-        m += 1
+def gen_message_set(k, block_length, hash_func):
+    num_blocks = k - 1
+    initial_state = b'\x00' * block_length
+    dummy_blocks = b'\x00' * (block_length * (2**num_blocks))
+    dummy_hash = hash_func(m=dummy_blocks, h=initial_state)
+    short_map = defaultdict(list)
+    long_map = defaultdict(list)
+    message_set = []
+    m=0
+    while num_blocks >= 0:
+        msg = m.to_bytes(block_length, 'big')
+        hash = hash_func(m=msg, h=initial_state)
+        short_map[hash].append(msg)
+        if long_map[hash] != []:
+            message_set.append((initial_state, hash, short_map[hash][0], long_map[hash][0]))
+            if num_blocks == 0:
+                return message_set
+            initial_state = hash
+            num_blocks -= 1
+            dummy_blocks = b'\x00' * (block_length * (int(2 ** num_blocks)))
+            dummy_hash = hash_func(m=dummy_blocks, h=initial_state)
+            short_map = defaultdict(list)
+            long_map = defaultdict(list)
+            m=0
+
+        hash = hash_func(m=msg, h=dummy_hash)
+        long_map[hash].append(dummy_blocks+msg)
+        if short_map[hash] != []:
+            message_set.append((initial_state, hash, short_map[hash][0], long_map[hash][0]))
+            if num_blocks == 0:
+                return message_set
+            initial_state = hash
+            num_blocks -= 1
+            dummy_blocks = b'\x00' * (block_length * (2 ** num_blocks))
+            dummy_hash = hash_func(m=dummy_blocks, h=initial_state)
+            short_map = defaultdict(list)
+            long_map = defaultdict(list)
+            m=0
+
+        m+=1
+
+    return message_set
+
+def crack_challenge53(m, k, block_length, func):
+    m_map = {}
+    hash = b'\x00'*block_length
+    for index, m_i in enumerate(breakup_data(m, block_length)):
+        hash = func(m=m_i, h=hash)
+        m_map[hash] = index
+
+    message_set = gen_message_set(k, block_length, func)
+    expandable_final_state = message_set[-1][1]
+
+    for bridge in range(2**(block_length*8)):
+        bridge_block = bridge.to_bytes(block_length, 'big')
+        h_i = func(m=bridge_block, h=expandable_final_state)
+        index = m_map.get(h_i)
+
+        if index:
+            break
+
+    index = m_map[h_i]
+    prefix = b''
+    for i in message_set:
+        if len(i[3]) < ((index+1)*block_length - len(prefix)):
+            prefix += i[3]
+        elif len(i[2]) < ((index+1)*block_length - len(prefix)):
+            prefix += i[2]
+        else:
+            break
+    return prefix + bridge_block + m[(index+1)*block_length:]
