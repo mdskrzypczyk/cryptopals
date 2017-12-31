@@ -4,7 +4,10 @@ from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from zlib import compress
+<<<<<<< HEAD
 from functools import partial
+=======
+>>>>>>> fc31abe40eae8a8d351f9422466651ef1bb53cb2
 from cipher_tools.data_manipulation import breakup_data
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
@@ -179,7 +182,6 @@ def challenge52_f(m, c=partial(encrypt_ecb, pad=False), h=challenge52_h):
 
 	for m_i in breakup_data(pkcs7pad(m, 16), 16):
 		hash += int.from_bytes(c(challenge52_iv, challenge52_key, m_i), 'big')
-		hash %= (2**(len(h) * 8))
 
 	return hash.to_bytes(len(h), 'big')
 
