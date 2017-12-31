@@ -1088,3 +1088,64 @@ def crack_challenge53(m, k, block_length, func):
         else:
             break
     return prefix + bridge_block + m[(index+1)*block_length:]
+
+
+def crack_challenge54(messages, k, block_length, hash_func):
+    initial_hashes = [hash_func(m=b.to_bytes(block_length, 'big'), h=b'\x00'*block_length) for b in range(2**k)]
+    funnel_map = {}
+    hashes = list(initial_hashes)
+    while len(hashes) > 1:
+        new_hash_set = []
+        for h1, h2 in zip(hashes[0::2], hashes[1::2]):
+            m = 0
+            hash_map = {}
+            collision_found = False
+            while not collision_found:
+                msg = m.to_bytes(block_length, 'big')
+                hash = hash_func(m=msg, h=h1)
+
+                if hash_map.get(hash):
+                    funnel_map[h1] = msg
+                    ch, cm = hash_map[hash]
+                    funnel_map[ch] = cm
+                    new_hash_set.append(hash)
+                    collision_found=True
+                    continue
+                else:
+                    hash_map[hash] = (h1, msg)
+
+                hash = hash_func(m=msg, h=h2)
+                if hash_map.get(hash):
+                    funnel_map[h2] = msg
+                    ch, cm = hash_map[hash]
+                    funnel_map[ch] = cm
+                    new_hash_set.append(hash)
+                    collision_found=True
+                    continue
+                else:
+                    hash_map[hash] = (h2, msg)
+
+                m += 1
+
+        hashes = new_hash_set
+
+    [final_state] = hashes
+    forged_messages = []
+    for message in messages:
+        message_hash = hash_func(m=message, h=b'\x00'*block_length)
+        m = 0
+        while hash_func(m.to_bytes(block_length, 'big'), h=message_hash) not in initial_hashes:
+            m += 1
+
+        forged_message = message + m.to_bytes(block_length, 'big')
+        forged_hash = hash_func(forged_message, h=b'\x00'*block_length)
+        while funnel_map.get(forged_hash):
+            block = funnel_map[forged_hash]
+            forged_message += block
+            forged_hash = hash_func(m=block, h=forged_hash)
+        forged_hash = hash_func(forged_message, h=b'\x00'*block_length)
+        forged_messages.append((forged_message, forged_hash))
+
+    return forged_messages
+
+

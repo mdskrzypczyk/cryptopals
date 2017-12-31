@@ -31,3 +31,11 @@ def challenge53():
     m_hash = challenge53_hasher(m=m, h=b'\x00' * block_length)
     forged_m_hash = challenge53_hasher(m=forged_m, h=b'\x00' * block_length)
     return [(m, m_hash), (forged_m, forged_m_hash)]
+
+from cipher_tools.cracking import crack_challenge54
+def challenge54():
+    block_length = 2
+    k = 6
+    messages = [b'Winner is team #' + bytes('{}'.format(i), 'utf-8') for i in range(10,74)]
+    return crack_challenge54(messages, k, block_length, challenge53_hasher)
+

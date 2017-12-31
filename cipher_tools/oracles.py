@@ -4,10 +4,7 @@ from random import randint, choice
 from base64 import b64decode
 from urllib.parse import quote
 from zlib import compress
-<<<<<<< HEAD
 from functools import partial
-=======
->>>>>>> fc31abe40eae8a8d351f9422466651ef1bb53cb2
 from cipher_tools.data_manipulation import breakup_data
 from cipher_tools.rng import mersenne_twister_rng, MT19937_config
 from cipher_tools.padding import *
