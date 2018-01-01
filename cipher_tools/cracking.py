@@ -898,10 +898,9 @@ def crack_challenge49B():
 
     extension = bytes(';{}:1000000'.format(attacker_client.client_id), 'utf-8')
     mal_message = pkcs7pad(captured_request['message'], 16) + extension
-    mal_mac = cbc_mac(captured_request['mac'], attacker_client.key, mal_message)
+    mal_mac = cbc_mac(mal_message, attacker_client.key, (0).to_bytes(16, 'big'))
 
     mal_request = {'message': mal_message, 'mac': mal_mac}
-    print(mal_request)
 
     attacker_client.send_request(mal_request)
     assert server.ids_to_balances[attacker_client.client_id] == 1000000
@@ -1129,7 +1128,6 @@ def crack_challenge54(messages, k, block_length, hash_func):
 
         hashes = new_hash_set
 
-    [final_state] = hashes
     forged_messages = []
     for message in messages:
         message_hash = hash_func(m=message, h=b'\x00'*block_length)
@@ -1148,4 +1146,12 @@ def crack_challenge54(messages, k, block_length, hash_func):
 
     return forged_messages
 
+def crack_challenge55(message_block):
+    # calculate the new value for a[1] in the normal fashion
+    a[1] = left_rotate(a[0] + f(b[0], c[0], d[0]) + m[0], 32, 3)
 
+    # correct the erroneous bit
+    a[1] ^= ((a[1][6] ^ b[0][6]) << 6)
+
+    # use algebra to correct the first message block
+    m[0] = right_rotate(a[1], 32, 3) - a[0] - md4_f(b[0], c[0], d[0])
