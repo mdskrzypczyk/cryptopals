@@ -1147,11 +1147,55 @@ def crack_challenge54(messages, k, block_length, hash_func):
     return forged_messages
 
 def crack_challenge55(message_block):
-    # calculate the new value for a[1] in the normal fashion
-    a[1] = left_rotate(a[0] + f(b[0], c[0], d[0]) + m[0], 32, 3)
+    words = [struct.unpack("<I", b)[0] for b in breakup_data(message_block, 4)]
 
-    # correct the erroneous bit
-    a[1] ^= ((a[1][6] ^ b[0][6]) << 6)
+    a0, b0, c0, d0 = 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476
 
-    # use algebra to correct the first message block
-    m[0] = right_rotate(a[1], 32, 3) - a[0] - md4_f(b[0], c[0], d[0])
+    # Condition 1
+    a1 = left_rotate(a0 + md4_f(b0, c0, d0) + words[0], 32, 3)
+    print("A1: {} B0: {}".format(bin(a1), bin(b0)))
+    a1 ^= ((a1 & 0x40) ^ (b0 & 0x40))
+    print("A1: {}".format(bin(a1)))
+    words[0] = (right_rotate(a1, 32, 3) - a0 - md4_f(b0, c0, d0)) & 0xFFFFFFFF
+
+
+    # Condition 2
+    d1 = left_rotate(d0 + md4_f(a1, b0, c0) + words[1], 32, 7)
+    print("D1: {}".format(bin(d1)))
+    d1 &= 0xFFFFFFBF
+    d1 ^= ((a1 & 0x80) ^ (d1 & 0x80))
+    d1 ^= ((a1 & 0x400) ^ (a1 & 0x400))
+    print("D1: {}".format(bin(d1)))
+    words[1] = (right_rotate(d1, 32, 7) - d0 - md4_f(a1, b0, c0)) & 0xFFFFFFFF
+
+    # Condition 3
+    c1 = left_rotate(c0 + md4_f(d1, a1, b0) + words[2], 32, 11)
+    print("C1: {}".format(bin(c1)))
+    c1 |= 0x40
+    c1 |= 0x80
+    c1 &= 0xFFFFFBFF
+    c1 ^= ((d1 & 0x2000000) ^ (c1 & 0x2000000))
+    print("C1: {}".format(bin(c1)))
+    words[2] = (right_rotate(c1, 32, 11) - c0 - md4_f(d1, a1, b0)) & 0xFFFFFFFF
+
+    # Condition 4
+    b1 = left_rotate(b0 + md4_f(c1, d1, a1) + words[3], 32, 19)
+    print("B1: {}".format(bin(b1)))
+    b1 |= 0x40
+    b1 &= 0xFFFFFF7F
+    b1 &= 0xFFFFFBFF
+    b1 &= 0xFDFFFFFF
+    print("B1: {}".format(bin(b1)))
+    words[3] = (right_rotate(b1, 32, 19) - b0 -md4_f(c1, d1, a1)) & 0xFFFFFFFF
+
+    print(words)
+    message_massaged = b''.join(b.to_bytes(4, 'big') for b in words)
+    massaged_hash = md4(message_massaged)
+    message_collision = b''
+    while md4(message_collision) != massaged_hash:
+        position = randint(16, len(message_massaged) - 1)
+        flip = randint(0,255)
+        nb = message_massaged[position] ^ flip
+        message_collision = message_massaged[:position] + nb.to_bytes(1, 'big') + message_massaged[position+1:]
+
+    return (message_massaged, message_collision)

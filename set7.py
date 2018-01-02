@@ -39,3 +39,10 @@ def challenge54():
     messages = [b'Winner is team #' + bytes('{}'.format(i), 'utf-8') for i in range(10,74)]
     return crack_challenge54(messages, k, block_length, challenge53_hasher)
 
+from cipher_tools.cracking import crack_challenge55
+def challenge55():
+    M = bytes([randint(0,255) for i in range(64)])
+    return crack_challenge55(M)
+
+def challenge56():
+    pass
